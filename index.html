@@ -1,0 +1,2023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aether-Link: The Emerald Protocol [V8]</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/MotionPathPlugin.min.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Quicksand:wght@300;500;700&display=swap');
+
+  /* ========================================= */
+  /* === 1. CSS VARIABLES & BASE RESET     === */
+  /* ========================================= */
+  :root {
+    --mint: #a8ffb5; 
+    --gold-dust: #fffdd0; 
+    --deep-bg: #030704; 
+    --laser-hot: #ff3333; 
+  }
+
+  body, html {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    background-color: var(--deep-bg);
+    font-family: 'Quicksand', sans-serif;
+    color: var(--mint);
+    overflow: hidden;
+    /* Force crisp font rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* ========================================= */
+  /* === 2. ETHEREAL WINGS SYSTEM          === */
+  /* ========================================= */
+  @keyframes slow-signal-glitch {
+    0%, 100% { transform: translateX(0) skewX(0); }
+    15% { transform: translateX(2px) skewX(1deg); }
+    16% { transform: translateX(-2px) skewX(-1deg); filter: hue-rotate(15deg); } 
+    17% { transform: translateX(0) skewX(0); filter: hue-rotate(0deg); }
+    50% { transform: translateX(-1px); }
+    85% { transform: translateX(1px) skewX(-0.5deg); }
+    86% { transform: translateX(-3px) skewX(1.5deg); filter: contrast(1.5); } 
+    87% { transform: translateX(0) skewX(0); filter: contrast(1); }
+  }
+  
+  #wings-container {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 1; pointer-events: none; opacity: 0;
+    mix-blend-mode: screen;
+    transition: opacity 3s ease-in-out, transform 3s ease-in-out;
+    transform: scale(1.15); 
+    will-change: transform, opacity;
+  }
+
+  #wings-video {
+    position: absolute; top: -8%; left: -8%; width: 116%; height: 116%;
+    object-fit: cover;
+    animation: slow-signal-glitch 6s infinite linear;
+    transition: filter 3s ease-in-out;
+    will-change: filter, transform;
+  }
+
+  #wings-scanlines {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: repeating-linear-gradient(0deg, rgba(168, 255, 181, 0) 0px, rgba(168, 255, 181, 0) 2px, rgba(168, 255, 181, 0.03) 3px, rgba(168, 255, 181, 0) 4px);
+    opacity: 0.5;
+    transition: opacity 1s ease;
+  }
+
+  .wings-maximized #wings-video {
+    filter: drop-shadow(0 0 30px rgba(168,255,181,1)) drop-shadow(0 0 60px rgba(168,255,181,0.8)) drop-shadow(0 0 15px rgba(255,253,208,0.6)) !important; 
+  }
+  .wings-maximized #wings-scanlines { opacity: 0.8; }
+
+  /* ========================================= */
+  /* === 3. SPRITE & BACKGROUND ANIMATIONS === */
+  /* ========================================= */
+  #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+  canvas { position: absolute; top: 0; left: 0; }
+
+  #sprite-anchor { 
+    position: absolute; 
+    top: 50%; 
+    left: 50%; 
+    z-index: 100; pointer-events: none; 
+    opacity: 0; 
+    /* Converted from 250px and -125px */
+    width: 15.625rem; 
+    height: 15.625rem; 
+    margin-left: -7.8125rem; 
+    margin-top: -7.8125rem; 
+    will-change: transform, filter, opacity;
+  }
+  
+  .sprite-vis {
+    width: 100%; height: 100%;
+    background-size: contain; background-position: center; background-repeat: no-repeat;
+    animation: sprite-shimmer 3s infinite alternate; 
+  }
+  
+  @keyframes sprite-shimmer {
+    0%, 100% { filter: drop-shadow(0 0 10px var(--mint)) brightness(1); opacity: 0.95; }
+    10%, 12% { filter: drop-shadow(0 0 15px var(--mint)) brightness(1.3) contrast(1.2); opacity: 0.8; } 
+    50% { filter: drop-shadow(0 0 8px var(--mint)) brightness(0.9); opacity: 1; }
+  }
+
+  @keyframes float { 
+    0%, 100% { transform: translateY(0); } 
+    50% { transform: translateY(-15px); } 
+  }
+
+  .is-floating { animation: sprite-shimmer 3s infinite alternate, float 4s ease-in-out infinite !important; }
+
+  /* ========================================= */
+  /* === 4. UI COMPONENTS & SURVEY BOX     === */
+  /* ========================================= */
+  #ui-wrapper { 
+    display: none; position: relative; z-index: 10; 
+    justify-content: center; align-items: center; height: 100vh; 
+  }
+  
+  #survey-box {
+    position: relative; 
+    width: 36.25rem; /* 580px */
+    height: 32.5rem; /* 520px */
+    padding: 2.5rem; /* 40px */
+    box-sizing: border-box; 
+    background: rgba(10, 25, 18, 0.7); border: 1px solid rgba(168, 255, 181, 0.2);
+    border-radius: 20px; backdrop-filter: blur(30px);
+    box-shadow: 0 0 50px rgba(0,0,0,0.9); text-align: center;
+    display: flex; flex-direction: column; justify-content: center;
+    perspective: 1200px; 
+  }
+  
+  #content-root {
+    display: flex; flex-direction: column; justify-content: center;
+    height: 100%; width: 100%; transform-style: preserve-3d; 
+  }
+
+  .answer-btn {
+    display: block; width: 100%; background: transparent;
+    border: 1px solid rgba(168, 255, 181, 0.3); color: var(--mint); 
+    padding: 0.85rem; margin: 0.6rem 0; border-radius: 6px; cursor: pointer; 
+    text-transform: uppercase; font-weight: 500; font-family: 'Quicksand', sans-serif;
+    transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  
+  .answer-btn:hover { 
+    background: rgba(168, 255, 181, 0.15); border-color: var(--mint); 
+    box-shadow: 0 0 20px rgba(168, 255, 181, 0.3); transform: scale(1.02) translateY(-2px);
+  }
+
+  /* Form Inputs */
+  .input-group { width: 85%; margin: 1rem auto; text-align: left; }
+  
+  .archotech-label {
+    display: block; font-family: 'Quicksand', sans-serif; font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 3px; color: rgba(168, 255, 181, 0.8);
+    text-transform: uppercase; margin-bottom: 0.5rem; text-shadow: 0 0 5px rgba(168, 255, 181, 0.4);
+    transition: all 1.5s ease;
+  }
+
+  .archotech-input {
+    width: 100%; box-sizing: border-box; margin: 0; background: rgba(10, 25, 18, 0.4);
+    border: 1px solid rgba(168, 255, 181, 0.4); color: var(--mint); padding: 0.75rem 1rem;
+    border-radius: 4px; font-family: 'Cinzel', serif; font-size: 1.2rem;
+    text-align: center; text-shadow: 0 0 8px var(--mint);
+    box-shadow: inset 0 0 10px rgba(168, 255, 181, 0.05); outline: none; resize: none;
+    transition: all 0.3s ease, color 1.5s ease, border-color 1.5s ease;
+  }
+
+  .archotech-input::-webkit-scrollbar { width: 8px; }
+  .archotech-input::-webkit-scrollbar-track { background: rgba(10, 25, 18, 0.3); border-radius: 4px; box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.8); }
+  .archotech-input::-webkit-scrollbar-thumb { background: rgba(168, 255, 181, 0.25); border-radius: 4px; border: 1px solid rgba(168, 255, 181, 0.6); }
+  .archotech-input:focus { border-color: var(--mint); box-shadow: 0 0 20px rgba(168, 255, 181, 0.4), inset 0 0 15px rgba(168, 255, 181, 0.2); transform: scale(1.02); }
+  .archotech-input::placeholder { color: rgba(168, 255, 181, 0.3); text-shadow: none; letter-spacing: 2px; }
+
+  /* Error State */
+  @keyframes error-shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
+  }
+  
+  .input-error {
+    border-color: #ff3333 !important; box-shadow: 0 0 15px rgba(255, 51, 51, 0.4), inset 0 0 10px rgba(255, 51, 51, 0.2) !important;
+    animation: error-shake 0.4s ease;
+  }
+
+  /* Themes */
+  body.theme-wish { background-color: #04111a; }
+  body.theme-wish #survey-box { box-shadow: 0 0 80px rgba(168, 230, 255, 0.4); background: rgba(15, 30, 45, 0.8); border-color: rgba(168, 230, 255, 0.6); }
+  body.theme-wish h2 { color: #a8e6ff; text-shadow: 0 0 10px rgba(168, 230, 255, 0.6); }
+  body.theme-wish .archotech-label { color: rgba(168, 230, 255, 0.9); text-shadow: 0 0 5px rgba(168, 230, 255, 0.5); }
+  body.theme-wish .archotech-input { color: #a8e6ff; border-color: rgba(168, 230, 255, 0.4); text-shadow: 0 0 8px #a8e6ff; box-shadow: inset 0 0 10px rgba(168, 230, 255, 0.1); }
+  
+  body.theme-fear { background-color: #010000; }
+  body.theme-fear #survey-box { box-shadow: 0 0 40px rgba(255, 0, 0, 0.3); background: rgba(10, 0, 0, 0.9); border-color: rgba(255, 0, 0, 0.4); }
+  body.theme-fear h2, body.theme-fear .answer-btn { color: #ff4444; border-color: rgba(255, 0, 0, 0.3); text-shadow: 0 0 5px #ff0000; }
+  body.theme-fear .archotech-label { color: rgba(255, 68, 68, 0.9); text-shadow: 0 0 5px rgba(255, 0, 0, 0.5); }
+  body.theme-fear .archotech-input { color: #ff4444; border-color: rgba(255, 0, 0, 0.3); text-shadow: 0 0 8px #ff0000; box-shadow: inset 0 0 10px rgba(255, 0, 0, 0.05); }
+
+  /* ========================================= */
+  /* === 5. SPECIAL MINIGAMES & GRIDS      === */
+  /* ========================================= */
+  .crime-grid {
+    display: grid; grid-template-columns: 2.5fr 1fr 1fr; gap: 6px 10px; 
+    align-items: center; margin-top: 5px; text-align: center; width: 95%; margin: 5px auto 0 auto;
+  }
+  .crime-header { font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; color: rgba(168, 255, 181, 0.7); text-transform: uppercase; }
+  .crime-label { text-align: left; font-family: 'Cinzel', serif; font-size: 0.85rem; color: var(--mint); }
+  .star-cb-wrapper { position: relative; cursor: pointer; display: inline-block; width: 28px; height: 28px; -webkit-tap-highlight-color: transparent; }
+  .star-cb-wrapper input { display: none; }
+  .star-icon { font-size: 1.4rem; color: rgba(168, 255, 181, 0.15); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); line-height: 28px; }
+  .star-cb-wrapper:hover .star-icon { color: rgba(168, 255, 181, 0.4); transform: scale(1.1); }
+  .star-cb-wrapper input:checked + .star-icon { color: var(--gold-dust); text-shadow: 0 0 15px var(--mint), 0 0 30px var(--gold-dust); transform: scale(1.3) rotate(180deg); }
+
+  #wa-intro-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; background: rgba(10, 25, 18, 0.98); z-index: 50; border-radius: 20px; }
+  .wa-title { font-family: 'Cinzel', serif; font-size: 2.5rem; color: #ff3333; text-shadow: 0 0 15px #ff0000; margin: 0; opacity: 0; text-align: center; }
+  .wa-subtitle { font-size: 1rem; color: var(--mint); letter-spacing: 3px; margin-top: 15px; opacity: 0; text-align: center; }
+  #wa-word-display { font-family: 'Cinzel', serif; font-size: 2.2rem; color: #fff; text-shadow: 0 0 15px var(--mint); margin-bottom: 30px; letter-spacing: 5px; height: 40px; }
+  .wa-progress-container { width: 80%; height: 4px; background: rgba(168, 255, 181, 0.2); margin: 0 auto 30px auto; border-radius: 2px; overflow: hidden; }
+  .wa-progress-bar { width: 100%; height: 100%; background: var(--mint); box-shadow: 0 0 10px var(--mint); }
+
+  #shatter-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1000; perspective: 1200px; }
+  .glass-shard { position: absolute; background: linear-gradient(135deg, rgba(168, 255, 181, 0.4) 0%, rgba(10, 25, 18, 0.1) 100%); backdrop-filter: blur(12px); border: 1px solid rgba(168, 255, 181, 0.6); box-shadow: 0 0 20px rgba(168, 255, 181, 0.3), inset 0 0 15px rgba(255, 253, 208, 0.2); transform-style: preserve-3d; opacity: 0; }
+
+  /* ========================================= */
+  /* === 6. WISP THEATER & CUTSCENE        === */
+  /* ========================================= */
+  #intro-cutscene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--deep-bg); z-index: 9500; display: none; overflow: hidden; transform-style: preserve-3d; }
+  #theater-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; background-image: radial-gradient(circle at 50% 50%, rgba(168,255,181,0.05) 0%, transparent 80%), url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E"); mix-blend-mode: overlay; animation: static-breathing 8s ease-in-out infinite alternate; }
+  @keyframes static-breathing { 0% { transform: scale(1); opacity: 0.15; } 100% { transform: scale(1.1); opacity: 0.25; filter: hue-rotate(10deg); } }
+
+  .wisp-container { position: absolute; pointer-events: none; width: 0px; height: 0px; display: flex; justify-content: center; align-items: center; z-index: 10; mix-blend-mode: screen; transform-style: preserve-3d; }
+  .wisp-core { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border-radius: 50%; }
+  .wisp-core::after { content: ''; position: absolute; width: 300%; height: 300%; top: -100%; left: -100%; border-radius: 50%; filter: blur(12px); z-index: -1; }
+  
+  .wisp-g .wisp-core { width: 12px; height: 12px; background: #fff; box-shadow: 0 0 15px 5px var(--mint), 0 0 30px 10px rgba(168, 255, 181, 0.6); }
+  .wisp-g .wisp-core::after { background: radial-gradient(circle, rgba(168,255,181,0.6) 0%, transparent 70%); animation: pulse-g 1.5s infinite alternate ease-in-out; }
+  .wisp-s .wisp-core { width: 18px; height: 18px; background: #fff; box-shadow: 0 0 20px 8px #e6ffff, 0 0 50px 20px rgba(0, 229, 255, 0.4); }
+  .wisp-s .wisp-core::after { background: radial-gradient(circle, rgba(255,255,255,0.7) 0%, transparent 70%); animation: pulse-s 3s infinite alternate ease-in-out; }
+  
+  @keyframes pulse-g { 0% { transform: scale(0.8); opacity: 0.8; } 100% { transform: scale(1.3); opacity: 1; } }
+  @keyframes pulse-s { 0% { transform: scale(0.9); opacity: 0.7; } 100% { transform: scale(1.4); opacity: 1; filter: blur(15px) saturate(0); } }
+
+  .speech-bubble { position: absolute; bottom: 40px; left: 50%; width: max-content; max-width: 320px; font-size: 1.5rem; text-align: center; opacity: 0; text-shadow: 0 0 10px currentColor; line-height: 1.3; white-space: normal; z-index: 1000; }
+  .speech-g { color: var(--mint); font-family: 'Quicksand', sans-serif; font-weight: 700; }
+  .speech-s { color: #ffffff; font-family: 'Cinzel', serif; font-weight: 700; letter-spacing: 2px; }
+  
+  /* CRITICAL FIX: The Matrix Shadow Stroke (Sharp, dark, legible) */
+  .speech-swoop { 
+    font-weight: 900; 
+    color: #ffffff;
+    text-shadow: 
+        -2px -2px 0 var(--deep-bg),  
+         2px -2px 0 var(--deep-bg),
+        -2px  2px 0 var(--deep-bg),
+         2px  2px 0 var(--deep-bg),
+         0 0 15px var(--deep-bg), 
+         0 0 30px var(--deep-bg) !important; 
+  }
+  
+  .speech-both { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 4.5rem; font-family: 'Cinzel', serif; font-weight: 900; background: linear-gradient(90deg, var(--mint) 0%, #ffffff 50%, var(--mint) 100%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 25px rgba(168,255,181,0.9)); text-align: center; opacity: 0; animation: gradient-shift 2s linear infinite; z-index: 50; }
+  @keyframes gradient-shift { to { background-position: 200% center; } }
+
+  /* ========================================= */
+  /* === 7. LOADING & OVERLAYS             === */
+  /* ========================================= */
+  #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--deep-bg); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 1s ease; }
+  #loading-bar-container { width: 300px; height: 10px; background: rgba(168, 255, 181, 0.1); border: 1px solid rgba(168, 255, 181, 0.3); border-radius: 5px; overflow: hidden; margin-top: 20px; box-shadow: 0 0 15px rgba(0,0,0,0.8); }
+  #loading-bar { width: 0%; height: 100%; background: var(--mint); box-shadow: 0 0 10px var(--mint); transition: width 0.3s ease; }
+  #loading-text { color: var(--mint); margin-top: 15px; font-weight: bold; letter-spacing: 2px; }
+  #start-btn { display: none; width: 200px; margin-top: 30px; }
+
+  #holo-transition-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, #061a14 0%, var(--deep-bg) 100%); z-index: 10000; display: none; opacity: 0; overflow: hidden; perspective: 800px; }
+  .boot-grid { position: absolute; bottom: -50%; left: -50%; width: 200%; height: 150%; background-image: linear-gradient(to right, rgba(0, 229, 255, 0.1) 1px, transparent 1px), linear-gradient(to top, rgba(0, 229, 255, 0.2) 1px, transparent 1px); background-size: 50px 50px; transform: rotateX(75deg); animation: grid-move 3s linear infinite; mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 80%); -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 80%); }
+  @keyframes grid-move { 0% { background-position: 0 0; } 100% { background-position: 0 50px; } }
+  .boot-ring-container { position: absolute; top: 50%; left: 50%; width: 400px; height: 400px; transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  .boot-ring { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; box-sizing: border-box; }
+  .outer-ring { border: 2px dashed rgba(168, 255, 181, 0.3); animation: spin-right 12s linear infinite; }
+  .middle-ring { width: 80%; height: 80%; top: 10%; left: 10%; border: 4px solid rgba(0, 229, 255, 0.5); border-left-color: transparent; border-right-color: transparent; animation: spin-left 4s linear infinite; box-shadow: 0 0 20px rgba(0, 229, 255, 0.2); }
+  .inner-ring { width: 60%; height: 60%; top: 20%; left: 20%; border: 1px dotted var(--mint); animation: spin-right 8s linear infinite; }
+  @keyframes spin-right { 100% { transform: rotate(360deg); } }
+  @keyframes spin-left { 100% { transform: rotate(-360deg); } }
+  .boot-brackets { position: absolute; top: 50%; left: 50%; width: 600px; height: 400px; transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+  .bracket { position: absolute; width: 50px; height: 50px; border: 3px solid var(--mint); filter: drop-shadow(0 0 10px var(--mint)); }
+  .top-left { top: 0; left: 0; border-right: none; border-bottom: none; }
+  .top-right { top: 0; right: 0; border-left: none; border-bottom: none; }
+  .bottom-left { bottom: 0; left: 0; border-right: none; border-top: none; }
+  .bottom-right { bottom: 0; right: 0; border-left: none; border-top: none; }
+  .boot-status { position: absolute; top: 55%; left: 50%; transform: translate(-50%, 0); font-family: 'Courier New', monospace; font-size: 1.2rem; color: #e6ffff; letter-spacing: 4px; text-shadow: 0 0 10px #00e5ff; text-align: center; opacity: 0; }
+  .boot-sweep { position: absolute; top: -10%; left: 0; width: 100%; height: 5px; background: #fff; box-shadow: 0 0 20px 10px var(--mint), 0 0 50px 20px rgba(0, 229, 255, 0.5); opacity: 0; }
+
+  #rules-overlay, #tc-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; justify-content: center; align-items: center; background: rgba(3, 7, 4, 0.85); z-index: 2000; opacity: 0; backdrop-filter: blur(15px); }
+  #rules-box { 
+    /* Converted from 450px and 40px */
+    width: 28.125rem; 
+    padding: 2.5rem; 
+    background: rgba(10, 25, 18, 0.9); border: 1px solid var(--mint); 
+    border-radius: 4px; box-shadow: 0 0 30px rgba(168, 255, 181, 0.15), inset 0 0 20px rgba(168, 255, 181, 0.05); text-align: center; 
+  }
+  .rules-header { font-family: 'Cinzel', serif; color: #fff; text-shadow: 0 0 10px var(--mint); letter-spacing: 2px; margin-top: 0; border-bottom: 1px solid rgba(168, 255, 181, 0.3); padding-bottom: 15px; margin-bottom: 25px; }
+  .rules-list { text-align: left; color: var(--mint); font-size: 1.1rem; line-height: 2.0; list-style-type: square; padding-left: 20px; margin-bottom: 25px; text-shadow: 0 0 5px rgba(168, 255, 181, 0.4); }
+  .rules-list b { font-family: 'Cinzel', serif; font-weight: 900; color: #ffffff; letter-spacing: 1px; text-transform: uppercase; text-shadow: 0 0 10px var(--mint), 0 0 20px rgba(168, 255, 181, 0.8); border-bottom: 1px solid rgba(168, 255, 181, 0.4); padding-bottom: 2px; margin-right: 6px; display: inline-block; }
+  .rules-warning { color: #ff3333; font-weight: bold; text-shadow: 0 0 8px rgba(255, 0, 0, 0.6); margin-bottom: 30px; letter-spacing: 1px; font-size: 0.9rem; line-height: 1.5; animation: text-glitch 3s infinite; }
+  #rules-accept-btn { background: rgba(168, 255, 181, 0.1); border: 1px solid var(--mint); color: var(--mint); padding: 12px 40px; font-family: 'Cinzel', serif; font-weight: bold; cursor: pointer; transition: all 0.3s ease; border-radius: 4px; letter-spacing: 2px; }
+  #rules-accept-btn:hover { background: rgba(168, 255, 181, 0.3); box-shadow: 0 0 20px var(--mint); color: #fff; transform: scale(1.05); }
+
+  #tc-box { 
+    /* Converted from 850px, 1100px, and 40px */
+    width: 53.125rem; 
+    height: 68.75rem; 
+    background: rgba(10, 0, 0, 0.9); border: 1px solid #ff4444; 
+    border-radius: 10px; padding: 2.5rem; display: flex; flex-direction: column; 
+    box-shadow: 0 0 40px rgba(255, 0, 0, 0.2); 
+  }
+  
+  #tc-text-container { 
+    flex-grow: 1; overflow-y: auto; text-align: left; 
+    font-size: 1.1rem; /* Larger font for the 2K base */
+    color: rgba(168, 255, 181, 0.7); padding-right: 15px; line-height: 1.6; 
+  }
+  #tc-text-container::-webkit-scrollbar { width: 5px; }
+  #tc-text-container::-webkit-scrollbar-thumb { background: rgba(168, 255, 181, 0.3); border-radius: 5px; }
+  .tc-clause { transition: all 0.3s ease; margin-bottom: 15px; }
+  #tc-buttons { display: flex; justify-content: space-between; margin-top: 20px; gap: 20px; }
+  .tc-btn { flex: 1; padding: 15px; background: transparent; border: 1px solid rgba(168, 255, 181, 0.5); color: var(--mint); cursor: pointer; font-family: 'Cinzel', serif; font-weight: bold; transition: all 0.3s ease; font-size: 1.1rem; }
+  .tc-btn:hover { background: rgba(168, 255, 181, 0.1); border-color: var(--mint); box-shadow: 0 0 15px rgba(168,255,181,0.3); }
+  #btn-decline { border-color: rgba(255, 51, 51, 0.5); color: #ff3333; }
+  #btn-decline:hover { background: rgba(255, 51, 51, 0.1); border-color: #ff3333; box-shadow: 0 0 15px rgba(255,0,0,0.3); }
+
+  /* Glitches */
+  @keyframes text-glitch { 0% { transform: translate(0); opacity: 1; } 20% { transform: translate(-2px, 1px); opacity: 0.8; filter: hue-rotate(90deg); } 40% { transform: translate(2px, -1px); opacity: 0.9; } 60% { transform: translate(-1px, 2px); opacity: 1; filter: invert(1); } 80% { transform: translate(1px, -2px); opacity: 0.7; } 100% { transform: translate(0); opacity: 1; } }
+  .tc-danger-glitch { animation: flickerflash 0.2s infinite !important; border-left: 4px solid #ff3333; padding-left: 10px; background: rgba(255, 0, 0, 0.1); }
+  @keyframes flickerflash { 0%, 100% { opacity: 1; color: #ff4444; text-shadow: 0 0 8px #ff0000; transform: skewX(0); } 10% { opacity: 0.3; color: #fff; transform: skewX(-5deg) translateX(-2px); } 20% { opacity: 0.9; color: #ff4444; filter: invert(1); transform: skewX(5deg); } 30% { opacity: 0.5; color: var(--mint); transform: skewX(0); } 40% { opacity: 1; color: #ff3333; transform: translateX(2px); } }
+  .tc-shimmer-swap { animation: shimmer-fade 0.6s ease-in-out forwards; }
+  @keyframes shimmer-fade { 0% { filter: blur(0px); opacity: 1; color: var(--mint); transform: scale(1); } 50% { filter: blur(6px) brightness(1.5); opacity: 0; color: #fff; transform: scale(0.98); } 100% { filter: blur(0px); opacity: 1; color: var(--mint); transform: scale(1); } }
+  .violent-override { animation: violent-shake 0.3s linear infinite !important; background: rgba(255, 51, 51, 0.4) !important; border-color: #ff3333 !important; color: #fff !important; text-shadow: 0 0 10px #ff3333; }
+  @keyframes violent-shake { 0% { transform: translate(2px, 1px) rotate(0deg) scale(1.05); } 20% { transform: translate(-3px, 0px) rotate(1deg) scale(1.05); } 40% { transform: translate(1px, -1px) rotate(1deg) scale(1.05); } 60% { transform: translate(-3px, 1px) rotate(0deg) scale(1.05); } 80% { transform: translate(-1px, -1px) rotate(1deg) scale(1.05); } 100% { transform: translate(1px, -2px) rotate(-1deg) scale(1.05); } }
+
+  .glitched-btn { position: relative; }
+  .glitched-btn::after { content: " TO US"; position: absolute; left: 50%; margin-left: 45px; color: rgba(255, 68, 68, 0.7); font-family: 'Cinzel', serif; text-shadow: 0 0 8px rgba(255, 0, 0, 0.8); white-space: nowrap; pointer-events: none; animation: submit-flicker 6s infinite; }
+  @keyframes submit-flicker { 0%, 85%, 100% { opacity: 0; transform: skewX(0); } 86% { opacity: 0.9; transform: skewX(-5deg); filter: brightness(1.5); } 88% { opacity: 0.2; transform: skewX(5deg); } 90% { opacity: 1; transform: skewX(0); filter: brightness(1.2); } 92% { opacity: 0; } }
+
+  /* ========================================= */
+  /* === 8. FINALE COMPONENT               === */
+  /* ========================================= */
+  #finale-ui { display: none; opacity: 0; height: 100%; flex-direction: column; justify-content: center; }
+  #palm-container { width: 220px; height: 280px; margin: 20px auto; position: relative; cursor: pointer; }
+  .palm-svg { width: 100%; height: 100%; filter: drop-shadow(0 0 10px var(--mint)); overflow: visible; }
+  .hand-sigil { fill: none; stroke: var(--mint); stroke-width: 1.5; opacity: 0.4; stroke-linecap: round; stroke-linejoin: round; }
+  .barcode-line { stroke: var(--laser-hot); stroke-linecap: square; filter: drop-shadow(0 0 4px var(--laser-hot)); }
+  #laser-dot { position: absolute; width: 10px; height: 10px; background: #fff; border-radius: 50%; box-shadow: 0 0 15px var(--laser-hot), 0 0 30px var(--laser-hot); z-index: 50; visibility: hidden; pointer-events: none; transform: translate(-50%, -50%); }
+
+  #overlay-text { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: flex-start; align-items: center; background: radial-gradient(circle, rgba(168, 255, 181, 0.2) 0%, var(--deep-bg) 100%); z-index: 1020; opacity: 0; padding-top: 50px; box-sizing: border-box; gap: 50px; }
+  #finale-submit-btn { display: block; opacity: 0; pointer-events: none; background: rgba(10, 25, 18, 0.9); border: 2px solid var(--mint); color: var(--mint); padding: 15px 60px 45px 60px; font-family: 'Cinzel', serif; font-size: 2.2rem; font-weight: 900; letter-spacing: 5px; border-radius: 4px; cursor: pointer; box-shadow: 0 0 20px rgba(0, 0, 0, 0.9), 0 0 15px rgba(168, 255, 181, 0.2), inset 0 0 20px rgba(168, 255, 181, 0.1); backdrop-filter: blur(10px); transition: all 0.2s ease-out; margin: 0 !important; }
+  #finale-submit-btn:hover { background: rgba(168, 255, 181, 0.15); color: #fff; border-color: #fff; box-shadow: 0 0 40px rgba(168, 255, 181, 0.6), inset 0 0 20px rgba(168, 255, 181, 0.3); transform: scale(1.03); }
+  #finale-submit-btn::after { content: "COMPLETELY"; position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-size: 0.9rem; color: #ff3333; text-shadow: 0 0 15px #ff0000, 2px 2px 0px rgba(100, 0, 0, 0.8), -2px -2px 0px rgba(255, 0, 0, 0.5); letter-spacing: 12px; font-weight: 900; pointer-events: none; animation: completely-flicker 2.5s infinite; }
+  @keyframes completely-flicker { 0%, 75%, 100% { opacity: 0; transform: translateX(-50%) skewX(0); } 76% { opacity: 1; transform: translate(-52%, -2px) skewX(-20deg); filter: brightness(2); } 78% { opacity: 0.4; transform: translate(-48%, 2px) skewX(20deg); filter: brightness(1); } 80% { opacity: 1; transform: translate(-50%, 0) skewX(-5deg); filter: brightness(1.5); } 83% { opacity: 0; } }
+  
+  .welcome-msg { font-family: 'Cinzel', serif; font-size: 3.5rem; color: #e6ffff; text-shadow: 0 0 40px #00e5ff, 0 0 15px rgba(0, 229, 255, 0.8), 0 0 5px #fff; text-align: center; font-weight: 700; line-height: 1.1; min-height: 120px; background: rgba(3, 8, 12, 0.75); border: 1px solid rgba(0, 229, 255, 0.5); box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), 0 0 20px rgba(0, 229, 255, 0.3), inset 0 0 15px rgba(0, 229, 255, 0.15); padding: 30px 50px; border-radius: 20px; backdrop-filter: blur(15px); margin: 0 !important; opacity: 0; }
+  
+  #finale-sprite { 
+    width: 62.5rem; /* 1000px */
+    height: 50rem; /* 800px */
+    background-image: url('imgs/fae-sprite-welcome.png'); 
+    background-size: contain; 
+    background-position: bottom center; 
+    background-repeat: no-repeat; 
+    opacity: 0; 
+  }
+  .is-stabilizing { animation: holo-stabilize 0.8s ease-out forwards; }
+  @keyframes holo-stabilize { 0% { opacity: 0; filter: brightness(5) blur(10px); transform: skewX(10deg); } 5% { opacity: 0.8; filter: brightness(2) blur(2px); transform: skewX(-5deg); } 10% { opacity: 0.3; filter: brightness(4) blur(8px); } 15% { opacity: 1; filter: brightness(1.5) blur(0px); transform: skewX(0deg); } 20% { opacity: 0.5; } 100% { opacity: 1; filter: brightness(1); } }
+  
+  #finale-sprite.is-shimmering { animation: sprite-shimmer 3s infinite alternate; }
+  #finale-sprite.is-materializing { animation: holo-materialize 3s ease-out forwards; }
+  @keyframes holo-materialize { 0% { opacity: 0; filter: brightness(4) blur(15px) hue-rotate(90deg) contrast(2); } 15% { opacity: 0.6; filter: brightness(2) blur(8px) hue-rotate(-45deg) contrast(1.5); } 25% { opacity: 0.2; filter: brightness(5) blur(12px) hue-rotate(45deg) contrast(3); } 40% { opacity: 0.8; filter: brightness(1.5) blur(4px) hue-rotate(0deg) contrast(1.2); } 60% { opacity: 0.5; filter: brightness(2) blur(6px) hue-rotate(20deg) contrast(1.8); } 80% { opacity: 0.9; filter: brightness(1.2) blur(2px) hue-rotate(0deg) contrast(1.1); } 100% { opacity: 1; filter: brightness(1) blur(0px) hue-rotate(0deg) contrast(1); } }
+
+  /* --- DYNAMIC UI SCALING FIX --- */
+  .ui-scaler {
+    position: relative;
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+    width: max-content; 
+    height: max-content;
+    transform-origin: center center;
+  }
+  
+  /* ========================================= */
+  /* === DEBUG MENU (DEV ONLY)             === */
+  /* ========================================= */
+  #debug-sidebar {
+    position: fixed; top: 0; left: 0; width: 260px; height: 100%;
+    background: rgba(0, 0, 0, 0.9); border-right: 1px solid var(--laser-hot);
+    color: #fff; font-family: monospace; z-index: 20000; overflow-y: auto; 
+    padding: 20px 15px; box-sizing: border-box; display: none; 
+    backdrop-filter: blur(10px); box-shadow: 5px 0 20px rgba(0,0,0,0.8);
+  }
+  
+  #debug-sidebar::-webkit-scrollbar { width: 5px; }
+  #debug-sidebar::-webkit-scrollbar-thumb { background: var(--laser-hot); border-radius: 5px; }
+
+  .debug-btn {
+    display: block; width: 100%; background: rgba(255,255,255,0.05); border: 1px solid #444;
+    color: #aaa; padding: 10px; margin-bottom: 6px; cursor: pointer; text-align: left;
+    transition: all 0.2s; font-family: 'Quicksand', sans-serif; font-weight: bold; 
+    text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;
+  }
+  
+  .debug-btn:hover { background: rgba(255, 51, 51, 0.2); color: #fff; border-color: var(--laser-hot); }
+  .debug-active { border-color: var(--mint); color: var(--mint); background: rgba(168, 255, 181, 0.1); box-shadow: inset 0 0 10px rgba(168, 255, 181, 0.2); }
+
+	/* ========================================= */
+/* === CERBERUS CLONE SYSTEM             === */
+/* ========================================= */
+.sprite-clone {
+  position: absolute; top: 0; left: 0; 
+  width: 100%; height: 100%;
+  background-size: contain; background-position: center; background-repeat: no-repeat;
+  opacity: 0; pointer-events: none;
+  transform-origin: bottom center; 
+  will-change: transform, opacity, filter;
+}
+
+/* The activation state (Updated with chained floating) */
+.is-cerberus .clone-left {
+  animation: 
+    cerberus-lean-left 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards,
+    cerberus-float-left 4.5s ease-in-out 1.2s infinite; /* Starts after 1.2s */
+}
+
+.is-cerberus .clone-right {
+  animation: 
+    cerberus-lean-right 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards,
+    cerberus-float-right 5.2s ease-in-out 1.35s infinite; /* Starts after 1.35s, loops at a different speed */
+}
+
+/* --- Keep your existing lean keyframes here --- */
+@keyframes cerberus-lean-left {
+  0% { transform: rotate(0deg) translateX(0) scale(0.9); opacity: 0; filter: brightness(1); }
+  100% { 
+    transform: rotate(-15deg) translateX(-80px) scale(0.85); 
+    opacity: 0.65; 
+    filter: hue-rotate(90deg) brightness(1.5) blur(1px) drop-shadow(0 0 15px rgba(0,229,255,0.8)); 
+  }
+}
+
+@keyframes cerberus-lean-right {
+  0% { transform: rotate(0deg) translateX(0) scale(0.9); opacity: 0; filter: brightness(1); }
+  100% { 
+    transform: rotate(15deg) translateX(80px) scale(0.85); 
+    opacity: 0.65; 
+    filter: hue-rotate(-90deg) brightness(1.5) blur(1px) drop-shadow(0 0 15px rgba(255,51,51,0.8)); 
+  }
+}
+
+/* --- Add these NEW infinite bobbing keyframes --- */
+@keyframes cerberus-float-left {
+  0%, 100% { transform: rotate(-15deg) translateX(-80px) translateY(0) scale(0.85); }
+  50% { 
+    /* Slightly shifts the rotation and pulls it upwards */
+    transform: rotate(-18deg) translateX(-85px) translateY(-15px) scale(0.85); 
+  }
+}
+
+@keyframes cerberus-float-right {
+  0%, 100% { transform: rotate(15deg) translateX(80px) translateY(0) scale(0.85); }
+  50% { 
+    /* Drifts the opposite direction */
+    transform: rotate(12deg) translateX(75px) translateY(-12px) scale(0.85); 
+  }
+}
+
+</style>
+</head>
+<body>
+
+<div id="intro-cutscene"></div>
+
+<div id="loading-screen">
+  <div class="ui-scaler" style="display: flex; flex-direction: column; align-items: center;">
+    <h2 style="font-family: Cinzel; color: var(--mint); margin: 0; text-shadow: 0 0 15px var(--mint);">ESTABLISHING CONNECTION</h2>
+    <div id="loading-bar-container"><div id="loading-bar"></div></div>
+    <p id="loading-text">SYNCING DATA: 0%</p>
+    <button id="start-btn" class="answer-btn" onclick="startExperience()">BEGIN ASSESSMENT</button>
+  </div>
+</div>
+
+<div id="holo-transition-overlay">
+  <div class="boot-grid"></div>
+  <div class="boot-ring-container" id="boot-rings">
+    <div class="boot-ring outer-ring"></div>
+    <div class="boot-ring middle-ring"></div>
+    <div class="boot-ring inner-ring"></div>
+  </div>
+  <div class="boot-brackets" id="boot-brackets">
+    <div class="bracket top-left"></div>
+    <div class="bracket top-right"></div>
+    <div class="bracket bottom-left"></div>
+    <div class="bracket bottom-right"></div>
+  </div>
+  <div class="boot-status" id="boot-status-text">SYSTEM STANDBY</div>
+  <div class="boot-sweep" id="boot-sweep"></div>
+</div>
+
+<div id="wings-container">
+  <video id="wings-video" src="media/wings.mp4#t=0.001" playsinline preload="auto"></video>
+  <div id="wings-scanlines"></div>
+</div>
+
+<div id="canvas-container"><canvas id="bg-layer"></canvas></div>
+
+<div id="rules-overlay">
+  <div class="ui-scaler" style="display: flex; justify-content: center; align-items: center;">
+  <div id="rules-box">
+    <h3 class="rules-header">AN HONEST EXCHANGE</h3>
+    <ul class="rules-list">
+      <li><b>Take your time!</b> The stars aren't going anywhere, and neither are we. Let your thoughts flow until they find their perfect home.</li>
+      <li><b>Give us the gift of the <i>real</i> you</b>! Sincerity is the fuel for a healthy bond, and we want to see every beautiful, honest facet of your soul.</li>
+	  <li><b>Choices are forever!</b> Once you’ve shared a piece of yourself, we’ll hold onto it for you. There’s no need to ever take a word back when it’s kept safe in our heart.</li>
+	  <li><b>We're in this together!</b> Our link requires our full, shared presence from start to finish. Once we begin the assessment, we simply couldn't bear to let you go until the very last question is answered!</li>
+    </ul>
+    <p class="rules-warning">WARNING: Your choices are final.<br>There is no going back once a submission is made.</p>
+    <button id="rules-accept-btn" onclick="acceptRules()">I UNDERSTAND</button>
+	</div>
+  </div>
+</div>
+
+<div id="ui-wrapper">
+  <div class="ui-scaler" style="position: relative; display: flex; justify-content: center; align-items: center;">
+  <div id="sprite-anchor"><div class="sprite-clone clone-left"></div>
+  <div class="sprite-clone clone-right"></div><div class="sprite-vis"></div></div>
+  <form id="quest-form" action="YOUR_FORMSPREE_URL_HERE" method="POST">
+    <div id="survey-box">
+      <div id="content-root"></div>
+      <div id="finale-ui">
+        <h2 style="font-family: Cinzel; font-size: 1.2rem; margin-top: 0;">PLACE PALM FOR IMPRINT</h2>
+        <div id="palm-container">
+          <div id="laser-dot"></div>
+          <svg class="palm-svg" viewBox="0 0 100 120">
+            <path class="hand-sigil" d="M30,115 L32,110 C31,100 22,95 20,85 C18,75 14,68 16,60 C17,52 21,55 22,65 L26,78" /> 
+            <path class="hand-sigil" d="M35,65 V25 C35,15 41,15 41,25 V55" /> 
+            <path class="hand-sigil" d="M48,55 V15 C48,5 54,5 54,15 V55" /> 
+            <path class="hand-sigil" d="M61,55 V20 C61,10 67,10 67,20 V55" /> 
+            <path class="hand-sigil" d="M74,70 V35 C74,25 80,25 80,35 V75 C80,100 75,115 65,115 H30" /> 
+            <g id="barcode-group">
+              <line class="barcode-line" x1="39" y1="83" x2="42" y2="83" stroke-width="1.5" />
+              <line class="barcode-line" x1="39" y1="83" x2="39" y2="86" stroke-width="1.5" />
+              <line class="barcode-line" x1="58" y1="108" x2="61" y2="108" stroke-width="1.5" />
+              <line class="barcode-line" x1="61" y1="105" x2="61" y2="108" stroke-width="1.5" />
+              <line class="barcode-line" x1="42" y1="85" x2="42" y2="105" stroke-width="1.2" />
+              <line class="barcode-line" x1="45" y1="89" x2="45" y2="101" stroke-width="2.5" />
+              <line class="barcode-line" x1="48" y1="83" x2="48" y2="108" stroke-width="1.8" />
+              <line class="barcode-line" x1="51" y1="87" x2="51" y2="104" stroke-width="0.8" />
+              <line class="barcode-line" x1="54" y1="85" x2="54" y2="99" stroke-width="2.2" />
+              <line class="barcode-line" x1="57" y1="91" x2="57" y2="106" stroke-width="1.5" />
+              <line class="barcode-line" x1="42" y1="93" x2="45" y2="93" stroke-width="1.2" />
+              <line class="barcode-line" x1="48" y1="98" x2="51" y2="98" stroke-width="1.8" />
+              <line class="barcode-line" x1="51" y1="89" x2="54" y2="89" stroke-width="0.8" />
+              <line class="barcode-line" x1="54" y1="102" x2="57" y2="102" stroke-width="1.5" />
+            </g>
+          </svg>
+        </div>
+        <p id="imprint-text" style="font-size: 0.8rem; font-weight: bold; letter-spacing: 3px; margin-top: 15px; min-height: 15px; color: var(--laser-hot); text-shadow: 0 0 8px var(--laser-hot);"></p>
+      </div>
+    </div>
+  </form>
+  </div>
+</div>
+
+<div id="finale-sprite-wrapper" style="position: fixed; bottom: 0; left: 0; width: 100%; display: none; justify-content: center; z-index: 1005; pointer-events: none;">
+  <div class="ui-scaler" style="transform-origin: bottom center;">
+    <div id="finale-sprite"></div>
+  </div>
+</div>
+
+<div id="overlay-text">
+<div class="ui-scaler" style="display: flex; flex-direction: column; align-items: center; gap: 50px;">
+  <div class="welcome-msg" id="final-welcome-msg"></div>
+  <button id="finale-submit-btn" onclick="executeFinalSubmit()">CLICK TO SUBMIT</button>
+  </div>
+</div>
+
+<div id="tc-overlay">
+  <div class="ui-scaler" style="display: flex; justify-content: center; align-items: center;">
+  <div id="tc-box">
+    <div id="tc-text-container"></div>
+    <div id="tc-buttons">
+      <button id="btn-decline" class="tc-btn" onclick="declineTC()">DECLINE</button>
+      <button id="btn-accept" class="tc-btn" onclick="acceptTC()">ACCEPT</button>
+    </div>
+  </div>
+  </div>
+</div>
+
+<audio id="bg-music" src="media/PerituneMaterial_Foreboding_loop.mp3" loop></audio>
+<audio id="bg-music-2" src="media/PerituneMaterial_Doppel_loop.mp3" loop></audio>
+<audio id="beep-sound" src="media/button.wav"></audio>
+<audio id="error-sound" src="media/error.wav"></audio>
+<audio id="giggle-sound" src="media/giggle.mp3"></audio>
+<audio id="chitter-sound" src="media/beep.mp3" loop></audio>
+
+<script>
+  gsap.registerPlugin(MotionPathPlugin);
+
+  // ==========================================
+  // === SYSTEM ARCHITECTURE & STATE        ===
+  // ==========================================
+  const Config = {
+    DEBUG_MODE: false,
+    SECRET_ALLERGY_TEXT: "Death. Extreme neural stimulation. Arcadian buzzhounds (extinct)."
+  };
+
+  const State = {
+    currentStep: 0,
+    isTextPhase: true,
+    musicStarted: false,
+    isTransitioning: false,
+    hasBeenWarnedAboutCrimes: false,
+    allergyTypingStarted: false,
+    tcActionLogged: false,
+    isBgCanvasRunning: true,
+    isTheaterRunning: false, 
+    emitInterval: null
+  };
+
+  const DOM = {};
+  // Declare shatter tracking at the system level
+  let activeShatterTimeline = null;
+
+  document.addEventListener("DOMContentLoaded", () => {
+    DOM.beep = document.getElementById('beep-sound');
+    DOM.error = document.getElementById('error-sound');
+    DOM.giggle = document.getElementById('giggle-sound');
+    DOM.bgm1 = document.getElementById('bg-music');
+    DOM.bgm2 = document.getElementById('bg-music-2');
+    
+    initDebugMenu();
+  });
+
+  // ==========================================
+  // === DEBUG NAVIGATION ENGINE            ===
+  // ==========================================
+  function initDebugMenu() {
+    if (!Config.DEBUG_MODE) return;
+    const sidebar = document.createElement('div');
+    sidebar.id = 'debug-sidebar';
+    
+    let html = '<h3 style="color:var(--laser-hot); margin-top:0; font-family:\'Cinzel\', serif; letter-spacing:2px; text-shadow:0 0 10px var(--laser-hot);">DEBUG OVERRIDE</h3>';
+    
+    textScreens.forEach((screen, i) => {
+      let title = screen.title;
+      if (title.length > 22) title = title.substring(0, 20) + "...";
+      html += `<button class="debug-btn" onclick="jumpToStep(${i})">[T] ${title}</button>`;
+    });
+    
+    questionsData.forEach((q, i) => {
+      const stepIndex = textScreens.length + i;
+      html += `<button class="debug-btn" onclick="jumpToStep(${stepIndex})">[Q] Question ${i+1}</button>`;
+    });
+    
+    html += `<button class="debug-btn" style="margin-top: 20px; border-color: #ff9900;" onclick="jumpToTC()">[!] Terms & Conditions</button>`;
+    html += `<button class="debug-btn" style="border-color: #ff9900;" onclick="jumpToFinale()">[!] Finale Imprint</button>`;
+    
+    sidebar.innerHTML = html;
+    document.body.appendChild(sidebar);
+    sidebar.style.display = 'block';
+  }
+
+  // THE NUKE FUNCTION: Ensures all intervals, timelines, and UI blocks are completely reset
+  function resetForDebug() {
+    gsap.killTweensOf("*");
+    if (activeShatterTimeline && activeShatterTimeline.isActive()) {
+      activeShatterTimeline.kill();
+      activeShatterTimeline = null;
+    }
+
+    State.isTransitioning = false;
+    State.isBgCanvasRunning = true;
+    State.isTheaterRunning = false; 
+    
+    if (typeof waTimer !== 'undefined' && waTimer) { clearInterval(waTimer); waTimer = null; }
+    if (typeof tcOverrideInterval !== 'undefined') clearInterval(tcOverrideInterval);
+    if (typeof tcSwapInterval !== 'undefined') clearInterval(tcSwapInterval);
+    if (State.emitInterval) { clearInterval(State.emitInterval); State.emitInterval = null; }
+    
+    document.getElementById('intro-cutscene').innerHTML = ''; // Safely execute ghost async events
+    document.getElementById('content-root').style.pointerEvents = '';
+    
+    const hides = ['loading-screen', 'intro-cutscene', 'holo-transition-overlay', 'rules-overlay', 'tc-overlay', 'overlay-text', 'finale-sprite-wrapper', 'wa-game-area', 'wa-intro-overlay', 'ui-wrapper', 'finale-ui'];
+    hides.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+    
+    gsap.set(["#survey-box", "#content-root", "#sprite-anchor", "#ui-wrapper", "#tc-overlay", "#finale-ui", "#tc-box", "#wa-game-area", "#wa-intro-overlay"], { clearProps: "all" });
+    document.querySelectorAll('.tc-danger-glitch').forEach(e => e.remove());
+  }
+
+  window.jumpToStep = function(stepIndex) {
+    if (!Config.DEBUG_MODE) return;
+    resetForDebug();
+    
+    document.getElementById('ui-wrapper').style.display = 'flex';
+    document.getElementById('survey-box').style.display = 'flex';
+    document.getElementById('content-root').style.display = 'flex';
+    
+    State.currentStep = stepIndex;
+    State.isTextPhase = stepIndex < textScreens.length;
+    
+    document.querySelectorAll('.debug-btn').forEach((btn, i) => btn.classList.toggle('debug-active', i === stepIndex));
+    
+    updateVisuals(true);
+    renderScreen(true);
+  };
+
+  window.jumpToTC = function() {
+    if (!Config.DEBUG_MODE) return;
+    resetForDebug();
+    State.currentStep = totalSteps; 
+    showTC();
+  };
+
+  window.jumpToFinale = function() {
+    if (!Config.DEBUG_MODE) return;
+    resetForDebug();
+    document.getElementById('ui-wrapper').style.display = 'flex';
+    document.getElementById('survey-box').style.display = 'flex';
+    
+    document.getElementById('wings-container').classList.add('wings-maximized');
+    const f = document.getElementById('finale-ui');
+    f.style.display = 'flex'; 
+    gsap.to(f, {opacity: 1, duration: 1});
+  };
+
+  const Sanitizer = {
+    escapeHTML: function(str) {
+      if(typeof str !== 'string') return str;
+      return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag]));
+    }
+  };
+
+  // ==========================================
+  // === DATA MODELS                        ===
+  // ==========================================
+  const textScreens = [
+    { title: "APPLICANT IDENTIFICATION", fields: ["Name", "Age"] },
+    { title: "BACKGROUND SCAN", fields: ["Prior Employment", "Skills"] },
+    { title: "INTELLECTUAL CALIBRATION", fields: ["Formal Education", "Certifications"] },
+    { title: "DEVIANCE", fields: ["Criminal History", "Criminal Future"] },
+    { title: "OPERATIONAL FLEXIBILITY", isGrid: true, crimes: ["Theft / Larceny", "Piracy", "Arson", "Smuggling", "Forgery", "Unlawful Conflict Resolution Through Violence", "Mutiny / Treason"] },
+    { title: "PERSONAL ATTACHMENTS", fields: ["Close Family / Loved Ones", "Prior Loyalties"] },
+    { title: "FINANCIAL OBLIGATIONS", fields: ["Debts Owed"] },
+    { title: "EXPLOITABLE COMPULSIONS", fields: ["Current Vices"] },
+    { title: "FRIENDLY CONVERSATION TOPICS", fields: ["Favorite Animal", "Favorite Food", "Favorite Substance"] },
+    { title: "BIOLOGICAL VULNERABILITIES", fields: ["Known Allergies", "Unknown Allergies"] },
+    { title: "DESIRE MAPPING", fields: ["Greatest Wish"] },
+    { title: "AUXILIARY MOTIVATOR", fields: ["Deepest Fear"] },
+    { title: "TRUST STIMULATION", fields: ["Most Precious Secret"] },
+    { title: "COGNITIVE REFLEX", isWordAssociation: true, words: ["MOTHER", "DARKNESS", "AUTHORITY", "SILENCE", "THE VESSEL", "FLESH", "SACRIFICE", "YOURSELF"] },
+    { title: "IDENTITY ASSESSMENT", fields: ["Keyword 1", "Keyword 2", "Keyword 3", "Keyword 4"] }
+  ];
+
+  const questionsData = [
+    { q: "Which part of your identity would you replace with your role as ship's crewmember?", a: [] },
+    { q: "A houseplant insists it prefers being rotated exactly 17 degrees each morning. Do you comply?", a: ["Once in a while, perhaps", "Of course, without fail", "Absolutely not, it was doing fine anyway", "I should see a psychologist"] },
+    { q: "You find a unfamiliar note in your own handwriting reminding you to 'check the thing'. What do you check first?", a: ["The locks. Are they still secure?", "The mirror. Who is looking back?", "The nearest window. Is the sky still there?", "The shadows. Are they pointing the right way?"] },
+    { q: "An antique clock in your home begins running a little fast. How do you react?", a: ["Adjust it, it's an easy fix", "It's just a little fast, I can adapt to it", "Replace it, the clock is flawed", "Congratulate it on its ambition"] },
+    { q: "You wake upon your bed clutching a shovel stained with fresh dirt. You have no memory of going outside, yet you feel a profound sense of both accomplishment and loss. What did you bury?", a: ["A mistake", "My past", "A secret that didn't belong to me", "Does it matter?"] },
+    { q: "Your favorite porcelain tea cup has developed an almost imperceptible leak at the base. How do you proceed?", a: ["Throw it out, you can always get another", "Patch it with tar - it'll do", "Hunt down the creator for a flawless weld", "Simply drink faster"] },
+    { q: "A tragedy! Your beloved mechanical singing bird has stopped singing. You discover it requires an exceedingly specific and rare ruby to function. As fate would have it, the local natural history museum currently has one on display. What do you do?", a: ["Accept that all songs must end and put the bird away", "Save your wages for years to purchase a similar jewel", "'Borrow' the ruby at midnight, for the bird must sing", "Replace the bird's ruby with a piece of painted glass andlie to it about its worth"] }
+  ];
+
+  const totalSteps = textScreens.length + questionsData.length;
+  
+  const poses = [
+    { x: -24, y: -320, scale: 1.0, float: false, img: "imgs/fae-sprite-alpha-1.png" },
+    { x: -350, y: -15, scale: 1.1, float: false, img: "imgs/fae-sprite-alpha-2.png" },
+    { x: 270, y: 85, scale: 1.3, float: false, img: "imgs/fae-sprite-alpha-3.png" },
+    { x: -160, y: -315, scale: 1.1, float: false, img: "imgs/fae-sprite-alpha-4.png" },
+    { x: 55, y: -365, scale: 1.2, float: true, img: "imgs/fae-sprite-alpha-7.png" },
+    { x: 270, y: 20, scale: 1.2, float: true, img: "imgs/fae-sprite-alpha-5.png" },
+    { x: 260, y: -285, scale: 1.2, float: false, img: "imgs/fae-sprite-alpha-6.png" },
+    { x: -270, y: -365, scale: 1.2, float: true, img: "imgs/fae-sprite-alpha-7.png" },
+    { x: -352, y: 25, scale: 0.8, float: false, img: "imgs/fae-sprite-alpha-8.png" },
+    { x: 406, y: 45, scale: 1.3, float: true, img: "imgs/fae-sprite-point-laying.png" },
+    { x: -164, y: -365, scale: 1.1, float: false, img: "imgs/fae-sprite-zzz.png" },
+    { x: 86, y: -385, scale: 1.2, float: true, cerberus: true, img: "imgs/fae-sprite-shrug.png" },
+    { x: -392, y: 75, scale: 1.3, float: true, img: "imgs/fae-sprite-point.png" },
+    { x: 286, y: -355, scale: 1.2, float: true, cerberus: true, img: "imgs/fae-sprite-sparkletada.png" }
+  ];
+
+  // ==========================================
+  // === PRELOADER & ASSETS                 ===
+  // ==========================================
+  const mediaElements = ['bg-music', 'bg-music-2', 'beep-sound', 'giggle-sound', 'wings-video', 'error-sound', 'chitter-sound'];
+  const totalAssets = mediaElements.length + poses.length + 1;
+  let loadedAssets = 0;
+
+  function updateLoadingProgress() {
+    loadedAssets++;
+    const percent = Math.floor((loadedAssets / totalAssets) * 100);
+    const bar = document.getElementById('loading-bar');
+    const text = document.getElementById('loading-text');
+    if(bar) bar.style.width = percent + '%';
+    if(text) text.innerText = `SYNCING DATA: ${percent}%`;
+
+    if (loadedAssets >= totalAssets) {
+      if(text) text.style.display = 'none';
+      document.getElementById('loading-bar-container').style.display = 'none';
+      const btn = document.getElementById('start-btn');
+      btn.style.display = 'block';
+      gsap.from(btn, {opacity: 0, y: 10, duration: 1});
+    }
+  }
+
+  const preloadedImages = [];
+  const finaleImg = new Image();
+  finaleImg.onload = finaleImg.onerror = updateLoadingProgress;
+  finaleImg.src = "imgs/fae-sprite-welcome.png";
+  preloadedImages.push(finaleImg);
+
+  poses.forEach(pose => {
+    const img = new Image();
+    img.onload = img.onerror = updateLoadingProgress; 
+    img.src = pose.img;
+    preloadedImages.push(img);
+  });
+
+  document.addEventListener("DOMContentLoaded", () => {
+    mediaElements.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        if (el.readyState >= 3) updateLoadingProgress();
+        else {
+          el.addEventListener('canplaythrough', updateLoadingProgress, { once: true });
+          el.addEventListener('error', updateLoadingProgress, { once: true }); 
+        }
+      } else { updateLoadingProgress(); }
+    });
+  });
+
+  // ==========================================
+  // === AUDIO CONTROLLER                   ===
+  // ==========================================
+  const AudioController = {
+    triggerInteraction: function() {
+      if (DOM.beep) {
+        DOM.beep.playbackRate = 1.0; 
+        DOM.beep.preservesPitch = true;
+        DOM.beep.volume = 1.0;
+        DOM.beep.currentTime = 0; 
+        DOM.beep.play().catch(e => console.log("Audio prevented by browser"));
+      }
+      if (!State.musicStarted && DOM.bgm1) {
+        DOM.bgm1.volume = 0.4; 
+        DOM.bgm1.play().catch(e => console.log("Autoplay prevented by browser"));
+        State.musicStarted = true;
+      }
+    },
+    playError: function() {
+      if (DOM.error) {
+        DOM.error.volume = 0.3;
+        DOM.error.currentTime = 0; 
+        DOM.error.play().catch(()=>{});
+      }
+    },
+    playTypewriter: function(isSimmy, baseScale = 1) {
+      if (DOM.beep) {
+        DOM.beep.currentTime = 0;
+        DOM.beep.preservesPitch = false;
+        DOM.beep.playbackRate = isSimmy ? 0.4 + (Math.random() * 0.2) : 1.8 + (Math.random() * 0.4);
+        DOM.beep.volume = isSimmy ? 0.8 : 0.4;
+        DOM.beep.play().catch(()=>{});
+      }
+    },
+    playCorruptedVoice: function() {
+      if (DOM.beep) {
+        DOM.beep.currentTime = 0;
+        DOM.beep.preservesPitch = false;
+        DOM.beep.playbackRate = 2.0 + (Math.random() * 1.5); 
+        DOM.beep.volume = 0.6; 
+        DOM.beep.play().catch(()=>{});
+      }
+    }
+  };
+
+  // ==========================================
+  // === BACKGROUND CANVAS & UI SCALING     ===
+  // ==========================================
+  
+  const canvas = document.getElementById('bg-layer');
+  const ctx = canvas.getContext('2d');
+  let cw, ch;
+  let stars = [], nebulae = [];
+
+  function resize() { 
+    cw = canvas.width = window.innerWidth; 
+    ch = canvas.height = window.innerHeight; 
+    
+    const baseWidth = 2560; 
+    const baseHeight = 1440;
+    
+    let scaleRatio = Math.min(window.innerWidth / baseWidth, window.innerHeight / baseHeight) * 1.2;
+    
+    if (scaleRatio > 1.2) scaleRatio = 1.2;
+    if (scaleRatio < 0.55) scaleRatio = 0.55;
+    
+    // Snap to an absolute integer to prevent subpixel smearing
+    const newRootSize = Math.round(16 * scaleRatio);
+    
+    document.documentElement.style.fontSize = `${newRootSize}px`;
+  }
+  
+  window.addEventListener('resize', resize); 
+  resize();
+
+  function initBackground() {
+    stars = [];
+    for (let i = 0; i < 200; i++) {
+      stars.push({ x: Math.random() * cw, y: Math.random() * ch, r: Math.random() * 1.5 + 0.5, vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4, baseAlpha: Math.random() * 0.6 + 0.1, glitchFrames: 0 });
+    }
+    nebulae = [];
+    for (let i = 0; i < 5; i++) {
+      nebulae.push({ x: Math.random() * cw, y: Math.random() * ch, r: Math.random() * 500 + 400, vx: (Math.random() - 0.5) * 0.15, vy: (Math.random() - 0.5) * 0.15 });
+    }
+  }
+  initBackground();
+
+  function animateParticles() {
+    requestAnimationFrame(animateParticles);
+    if(!State.isBgCanvasRunning) return;
+
+    ctx.clearRect(0, 0, cw, ch);
+    const isFear = document.body.classList.contains('theme-fear');
+    const nebRGB = isFear ? '150, 10, 10' : '15, 60, 40'; 
+    const starRGB = isFear ? '255, 80, 80' : '168, 255, 181';
+
+    nebulae.forEach(n => {
+      n.x += n.vx; n.y += n.vy;
+      if (n.x - n.r > cw) n.x = -n.r; if (n.x + n.r < 0) n.x = cw + n.r;
+      if (n.y - n.r > ch) n.y = -n.r; if (n.y + n.r < 0) n.y = ch + n.r;
+
+      let grad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
+      grad.addColorStop(0, `rgba(${nebRGB}, 0.09)`); 
+      grad.addColorStop(1, `rgba(${nebRGB}, 0)`); 
+      ctx.beginPath(); ctx.fillStyle = grad; ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2); ctx.fill();
+    });
+
+    let activeStars = 60;
+    if (!State.isTextPhase) activeStars += (State.currentStep - textScreens.length) * 20;
+    if (activeStars > stars.length) activeStars = stars.length;
+
+    for (let i = 0; i < activeStars; i++) {
+      let s = stars[i];
+      s.x += s.vx; s.y += s.vy;
+      if (s.x > cw) s.x = 0; if (s.x < 0) s.x = cw;
+      if (s.y > ch) s.y = 0; if (s.y < 0) s.y = ch;
+
+      if (s.glitchFrames > 0) s.glitchFrames--;
+      else if (Math.random() < 0.003) s.glitchFrames = Math.floor(Math.random() * 15) + 5; 
+
+      let drawX = s.x, drawY = s.y, drawA = s.baseAlpha, drawR = s.r;
+
+      if (s.glitchFrames > 0) {
+        drawX += (Math.random() - 0.5) * 15; 
+        drawA = Math.random(); 
+        if (Math.random() < 0.2) {
+           ctx.fillStyle = `rgba(${starRGB}, ${drawA})`;
+           ctx.fillRect(drawX - 20, drawY, 40, 1.5);
+        }
+      } else { drawA += Math.sin(Date.now() * 0.002 + i) * 0.2; }
+
+      ctx.beginPath(); ctx.fillStyle = `rgba(${starRGB}, ${Math.max(0, Math.min(1, drawA))})`;
+      ctx.arc(drawX, drawY, drawR, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  animateParticles();
+
+  // ==========================================
+  // === BOOT SEQUENCE & WISP THEATER       ===
+  // ==========================================
+  function startExperience() {
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) elem.requestFullscreen().catch(()=>{}); 
+    else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen(); 
+
+    document.getElementById('start-btn').style.pointerEvents = 'none';
+    document.getElementById('loading-text').innerHTML = "ENGAGING OVERRIDE...";
+    
+    const overlay = document.getElementById('holo-transition-overlay');
+    const rings = document.getElementById('boot-rings');
+    const brackets = document.getElementById('boot-brackets');
+    const statusText = document.getElementById('boot-status-text');
+    const sweep = document.getElementById('boot-sweep');
+
+    const playBeep = (pitch, vol) => { if(DOM.beep){ DOM.beep.playbackRate = pitch; DOM.beep.volume = vol; DOM.beep.currentTime = 0; DOM.beep.play().catch(()=>{}); } };
+
+    const bootTl = gsap.timeline();
+    bootTl.to({}, { duration: 1.5 })
+      .call(() => {
+        overlay.style.display = 'block'; playBeep(0.3, 1.0); 
+        if (DOM.bgm1) { DOM.bgm1.volume = 0.4; DOM.bgm1.play().catch(()=>{}); State.musicStarted = true; }
+      })
+      .to(overlay, { opacity: 1, duration: 1.2 })
+      .to(rings, { opacity: 1, scale: 1, duration: 3.0, ease: "back.out(1.2)" }, "+=0.5")
+      .call(() => { statusText.innerHTML = "LOCATING SIGNAL..."; playBeep(1.5, 0.4); })
+      .to(statusText, { opacity: 1, duration: 0.8 }, "-=2.0")
+      .to({}, { duration: 1.5 })
+      .to(brackets, { opacity: 1, scale: 1, duration: 1.0, ease: "power4.inOut" })
+      .call(() => { statusText.innerHTML = "NEURAL CONNECTION ALIGNED"; playBeep(2.0, 0.6); }) 
+      .to({}, { duration: 1.5 })
+      .call(() => { statusText.innerHTML = "ACCESSING DATABASE..."; playBeep(1.8, 0.3); })
+      .to({}, { duration: 1.8 })
+      .call(() => { statusText.innerHTML = "ACCESS GRANTED"; playBeep(0.8, 0.8); })
+      .to({}, { duration: 1.2 })
+      .to(sweep, { opacity: 1, duration: 0.2 })
+      .to(sweep, { top: "110%", duration: 2.0, ease: "power2.in" })
+      .to('#loading-screen', { opacity: 0, duration: 0.3 }, "-=1.2")
+      .call(() => { document.getElementById('loading-screen').style.display = 'none'; }, null, "-=1.2")
+      .to([rings, brackets], { scale: 3, opacity: 0, duration: 1.5, ease: "power2.in" }, "-=0.5")
+      .to(overlay, { 
+        opacity: 0, duration: 1.2, 
+        onComplete: () => {
+          overlay.style.display = 'none';
+          if(DOM.beep) DOM.beep.playbackRate = 1.0;
+          State.isBgCanvasRunning = false; 
+          playWispCutscene(() => init());
+        }
+      }, "-=0.5");
+  }
+
+  function typeDialogue(wispElement, textClass, text, isSimmy, baseScale = 1) { 
+    return new Promise(resolve => {
+      if (!document.body.contains(wispElement)) return resolve(); // Safe cancel for debug resets
+
+      const bubble = document.createElement('div');
+      bubble.className = `speech-bubble ${textClass}`;
+      wispElement.appendChild(bubble);
+      gsap.set(bubble, { xPercent: -50 });
+      gsap.fromTo(bubble, { y: 10, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, ease: "back.out(2)" });
+
+      const words = text.split(' ');
+      const charArray = [];
+      words.forEach((word, wIndex) => {
+        const wordContainer = document.createElement('span');
+        wordContainer.style.cssText = "display: inline-block; white-space: nowrap;"; 
+        bubble.appendChild(wordContainer);
+        for (let c = 0; c < word.length; c++) {
+          const charSpan = document.createElement('span');
+          charSpan.style.display = 'inline-block';
+          wordContainer.appendChild(charSpan);
+          charArray.push({ char: word[c], el: charSpan });
+        }
+        if (wIndex < words.length - 1) {
+          bubble.appendChild(document.createTextNode(' '));
+          charArray.push({ char: ' ', el: null });
+        }
+      });
+
+      let i = 0;
+      const core = wispElement.querySelector('.wisp-core');
+
+      function type() {
+        if (!document.body.contains(wispElement)) return resolve(); // Safe cancel
+
+        if (i < charArray.length) {
+          const current = charArray[i];
+          if (current.char !== ' ') {
+            if (!isSimmy) {
+              current.el.innerText = current.char;
+              gsap.from(current.el, { scale: 0, rotation: (Math.random()-0.5)*40, opacity: 0, duration: 0.6, ease: "elastic.out(1, 0.4)" });
+            } else {
+              let scrambles = 0;
+              const alienChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ!<>-_\\/[]{}—=+*^?#_";
+              const decryptInterval = setInterval(() => {
+                current.el.innerText = alienChars.charAt(Math.floor(Math.random() * alienChars.length));
+                current.el.style.color = "rgba(0, 229, 255, 0.8)"; 
+                scrambles++;
+                if (scrambles > 3) {
+                  clearInterval(decryptInterval);
+                  current.el.innerText = current.char;
+                  current.el.style.color = ""; 
+                }
+              }, 20);
+            }
+          }
+          if (current.char !== ' ' && (i % 2 === 0)) {
+            AudioController.playTypewriter(isSimmy, baseScale);
+            gsap.to(core, { scale: baseScale * (isSimmy ? 1.15 : 1.3), duration: 0.05, yoyo: true, repeat: 1 });
+          }
+          i++;
+          setTimeout(type, isSimmy ? 60 : 35); 
+        } else {
+          setTimeout(() => { gsap.to(bubble, {opacity: 0, y: -15, duration: 0.5, onComplete: () => { bubble.remove(); resolve(); }}); }, 1800); 
+        }
+      }
+      type();
+    });
+  }
+
+  function typeBoth(text) {
+    return new Promise(resolve => {
+      const container = document.getElementById('intro-cutscene');
+      if (!document.body.contains(container)) return resolve();
+
+      const bothDiv = document.createElement('div');
+      bothDiv.className = 'speech-both';
+      container.appendChild(bothDiv);
+      gsap.fromTo(bothDiv, { scale: 0.8, opacity: 0, filter: "blur(10px)" }, { scale: 1, opacity: 1, filter: "blur(0px)", duration: 0.4, ease: "back.out(1.5)" });
+
+      let i = 0;
+      function type() {
+        if (!document.body.contains(container)) return resolve();
+        if (i < text.length) {
+          bothDiv.innerHTML += text.charAt(i);
+          i++;
+          if (i % 2 === 0 && DOM.beep) {
+            DOM.beep.currentTime = 0; DOM.beep.preservesPitch = false; DOM.beep.playbackRate = 1.0; DOM.beep.volume = 1.0; DOM.beep.play().catch(()=>{});
+          }
+          setTimeout(type, 50);
+        } else {
+          gsap.to('#intro-cutscene', {x: () => (Math.random()-0.5)*15, y: () => (Math.random()-0.5)*15, repeat: 12, duration: 0.05});
+          setTimeout(() => { gsap.to(bothDiv, {opacity: 0, scale: 1.5, filter: 'blur(15px)', duration: 0.8, onComplete: () => { bothDiv.remove(); resolve(); }}); }, 2000);
+        }
+      }
+      type();
+    });
+  }
+
+  async function playWispCutscene(onComplete) {
+    State.isTheaterRunning = true;
+    const cutscene = document.getElementById('intro-cutscene');
+    cutscene.style.display = 'block';
+
+    const stageBg = document.createElement('div'); stageBg.id = 'theater-bg';
+    const dynCanvas = document.createElement('canvas');
+    dynCanvas.style.cssText = "position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; pointer-events:none;";
+    cutscene.appendChild(stageBg); cutscene.appendChild(dynCanvas);
+    
+    const ctx = dynCanvas.getContext('2d');
+    const cw = dynCanvas.width = window.innerWidth;
+    const ch = dynCanvas.height = window.innerHeight;
+    
+    let nodes = []; 
+    for (let i = 0; i < 70; i++) nodes.push({ x: Math.random()*cw, y: Math.random()*ch, vx: (Math.random()-0.5)*0.3, vy: (Math.random()-0.5)*0.3, r: Math.random()*2+1 });
+    let particles = []; 
+
+    function renderTheater() {
+      if (!State.isTheaterRunning) return;
+      
+      // Continuously sync canvas size with the window to prevent stretching during resize
+      if (dynCanvas.width !== window.innerWidth || dynCanvas.height !== window.innerHeight) {
+          dynCanvas.width = window.innerWidth;
+          dynCanvas.height = window.innerHeight;
+      }
+      
+      const currentW = dynCanvas.width;
+      const currentH = dynCanvas.height;
+
+      ctx.clearRect(0, 0, currentW, currentH);
+      ctx.lineWidth = 0.5;
+      
+      nodes.forEach((n, i) => {
+        n.x += n.vx; n.y += n.vy;
+        // Map boundaries to the live dimensions
+        if (n.x < 0) n.x = currentW; if (n.x > currentW) n.x = 0;
+        if (n.y < 0) n.y = currentH; if (n.y > currentH) n.y = 0;
+        
+        ctx.fillStyle = "rgba(168, 255, 181, 0.2)";
+        ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI*2); ctx.fill();
+        for (let j = i+1; j < nodes.length; j++) {
+          let dist = Math.hypot(n.x - nodes[j].x, n.y - nodes[j].y);
+          if (dist < 150) {
+            ctx.strokeStyle = `rgba(168, 255, 181, ${(1 - dist/150) * 0.15})`;
+            ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(nodes[j].x, nodes[j].y); ctx.stroke();
+          }
+        }
+      });
+      
+      particles.forEach((p, i) => {
+        p.life -= p.decay;
+        if (p.life <= 0) { particles.splice(i, 1); return; }
+        if (p.type === 'g') {
+          p.x += p.vx; p.y += p.vy; p.rot += p.vRot;
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = `rgba(168, 255, 181, ${p.life * 0.6})`; ctx.fillRect(-p.r/2, -p.r/2, p.r, p.r); ctx.restore();
+        } else {
+          p.r += p.dr; ctx.strokeStyle = `rgba(0, 229, 255, ${p.life * 0.4})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.stroke();
+        }
+      });
+      requestAnimationFrame(renderTheater);
+    }
+
+	const wispG = document.createElement('div'); wispG.className = 'wisp-container wisp-g'; wispG.style.left='0px'; wispG.style.top='0px'; wispG.innerHTML = '<div class="wisp-core"></div>';
+    const wispS = document.createElement('div'); wispS.className = 'wisp-container wisp-s'; wispS.style.left='0px'; wispS.style.top='0px'; wispS.innerHTML = '<div class="wisp-core"></div>';
+    cutscene.appendChild(wispG); cutscene.appendChild(wispS);
+    renderTheater();
+
+    State.emitInterval = setInterval(() => {
+      if (!State.isTheaterRunning) { clearInterval(State.emitInterval); return; }
+      
+      // Pull absolute live pixel coordinates, ignoring CSS units completely
+      const rectG = wispG.getBoundingClientRect();
+      const rectS = wispS.getBoundingClientRect();
+      
+      const gx = rectG.left;
+      const gy = rectG.top;
+      const sx = rectS.left;
+      const sy = rectS.top;
+
+      const gScale = gsap.getProperty(wispG.querySelector('.wisp-core'), "scale") || 1;
+      const pScale = Math.min(gScale, 2.5); 
+      
+      particles.push({ x: gx, y: gy, vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2, rot: Math.random()*Math.PI, vRot: (Math.random()-0.5)*0.2, r: (Math.random()*6+3)*pScale, life: 1, decay: 0.02, type: 'g' });
+      if (Math.random() < 0.3) particles.push({ x: sx, y: sy, r: 5, dr: 1.2, life: 1, decay: 0.02, type: 's' });
+    }, 40);
+
+    const shiftAmbient = (color, dur = 1.5) => gsap.to(stageBg, { background: `radial-gradient(circle at 50% 50%, ${color} 0%, var(--deep-bg) 100%)`, duration: dur });
+    // =========================================================
+
+    gsap.set(wispG, {x: "-20vw", y: "30vh", opacity: 0});
+    gsap.set(wispS, {x: "120vw", y: "70vh", opacity: 0});
+
+    shiftAmbient('rgba(168,255,181,0.1)');
+    gsap.to(wispG, { opacity: 1, x: "35vw", y: "35vh", duration: 3, ease: "power2.out" });
+    await gsap.to(wispS, { opacity: 1, x: "65vw", y: "65vh", duration: 3.5, ease: "power2.inOut" });
+    if (!State.isTheaterRunning) return;
+
+    // BLOCK 1: Welcome
+    await gsap.to(wispG, { x: "20vw", y: "30vh", duration: 0.8, ease: "sine.inOut" });
+    if (!State.isTheaterRunning) return;
+
+    const swoopTl = gsap.timeline();
+    swoopTl.to(wispG, { x: "50vw", duration: 1.2, ease: "power2.inOut" }, 0) 
+           .to(wispG, { y: "75vh", duration: 0.6, ease: "sine.in" }, 0) 
+           .to(wispG, { y: "45vh", duration: 0.6, ease: "power2.out" }, 0.6) 
+           .to(wispG.querySelector('.wisp-core'), { scale: 12.5, opacity: 0.8, filter: "brightness(1.1) blur(1px)", duration: 1.2, ease: "power2.in" }, 0);
+           
+    await new Promise(r => setTimeout(r, 1300));
+    await typeDialogue(wispG, 'speech-g speech-swoop', "We're so glad to see you!", false, 12.5);
+
+    gsap.to(wispG, { motionPath: { path: [{x: "40vw", y: "25vh"}, {x: "35vw", y: "35vh"}] }, duration: 1.5, ease: "power3.inOut" });
+    gsap.to(wispG.querySelector('.wisp-core'), { scale: 1, opacity: 1, filter: "none", duration: 1.5 });
+    await typeDialogue(wispS, 'speech-s', "Delighted, maybe even thrilled.", true);
+
+    // BLOCK 2
+    gsap.to(wispG, { motionPath: { path: [{x: "40vw", y: "20vh"}, {x: "50vw", y: "35vh"}] }, duration: 1.5 });
+    await typeDialogue(wispG, 'speech-g', "But before we become friends...", false);
+    gsap.to(wispS, { x: "50vw", y: "60vh", duration: 1.5, ease: "power2.inOut" });
+    await typeDialogue(wispS, 'speech-s', "...We have to verify compatibility.", true);
+
+    // BLOCK 3
+    gsap.to(wispG, { motionPath: { path: [{x: "20vw", y: "10vh"}, {x: "25vw", y: "25vh"}] }, duration: 1.2 });
+    await typeDialogue(wispG, 'speech-g', "Time for a teensy little survey!", false);
+    shiftAmbient('rgba(0, 229, 255, 0.1)', 0.5);
+    
+    // Scanline made fully responsive
+    const scanLine = document.createElement('div');
+    scanLine.style.cssText = "position:absolute; top:-100px; left:0; width:100%; height:80px; background:linear-gradient(to bottom, transparent, rgba(0,229,255,0.4), #00e5ff); mix-blend-mode: overlay; z-index:9000;";
+    cutscene.appendChild(scanLine);
+    gsap.to(scanLine, { top: "120vh", duration: 2.5, ease: "power1.inOut", onComplete: () => scanLine.remove() });
+    await typeDialogue(wispS, 'speech-s', "A cognitive vivisection.", true);
+
+    // BLOCK 4
+    gsap.to(wispG, { y: "-=5vh", yoyo: true, repeat: 3, duration: 0.25, ease: "sine.inOut" });
+    await typeDialogue(wispG, 'speech-g', "An application, an assessment!", false);
+    shiftAmbient('rgba(0,0,0,0.8)', 1);
+    gsap.to(wispS, { y: "+=8vh", duration: 2, ease: "power2.inOut" });
+    await typeDialogue(wispS, 'speech-s', "If it makes them feel better to call it that.", true);
+    shiftAmbient('rgba(168,255,181,0.1)', 1);
+
+    // BLOCK 5
+    gsap.to(wispG, { x: "40vw", y: "30vh", duration: 1.2, ease: "power2.inOut" });
+    gsap.to(wispS, { x: "60vw", y: "50vh", duration: 1.2, ease: "power2.inOut" });
+    await new Promise(r => setTimeout(r, 1200));
+    let gDance = gsap.to(wispG, { motionPath: { path: [{ x: "50vw", y: "20vh" }, { x: "60vw", y: "30vh" }, { x: "50vw", y: "40vh" }, { x: "40vw", y: "30vh" }], curviness: 1.5, closed: true }, duration: 4, repeat: -1, ease: "none" });
+    let sDance = gsap.to(wispS, { motionPath: { path: [{ x: "50vw", y: "60vh" }, { x: "40vw", y: "50vh" }, { x: "50vw", y: "40vh" }, { x: "60vw", y: "50vh" }], curviness: 1.5, closed: true }, duration: 4, repeat: -1, ease: "none" });
+    await typeDialogue(wispG, 'speech-g', "It will be quick!", false);
+    await typeDialogue(wispS, 'speech-s', "Painless.", true);
+    gDance.kill(); sDance.kill();
+    gsap.to([wispG, wispS], { x: "50vw", y: "50vh", duration: 1, ease: "back.in(2)" });
+    await new Promise(r => setTimeout(r, 1100));
+    await typeBoth("Fun.");
+
+    // BLOCK 6
+    gsap.to(wispG, { x: "30vw", y: "40vh", duration: 1.5, ease: "power2.out" });
+    gsap.to(wispS, { x: "70vw", y: "60vh", duration: 1.5, ease: "power2.out" });
+    await typeDialogue(wispG, 'speech-g', "Think hard before you answer.", false);
+    await typeDialogue(wispS, 'speech-s', "As much as you're capable of.", true);
+    await typeDialogue(wispG, 'speech-g', "There are no wrong answers!", false);
+    await typeDialogue(wispS, 'speech-s', "Technically true. Though some may be quite problematic.", true);
+
+    // BLOCK 7
+    gsap.to(wispG, { motionPath: { path: [{x: "40vw", y: "45vh"}] }, duration: 1 });
+    await typeDialogue(wispG, 'speech-g', "Are you excited?", false);
+    gsap.to(wispS, { motionPath: { path: [{x: "60vw", y: "55vh"}] }, duration: 1 });
+    await typeDialogue(wispS, 'speech-s', "Are you prepared?", true);
+
+    // MERGE
+    gsap.to([wispG, wispS], { x: "50vw", y: "50vh", duration: 1.2, ease: "power4.in" });
+    await new Promise(r => setTimeout(r, 1300));
+    await typeBoth("Let's begin.");
+
+    // TRANSITION OUT
+    gsap.to([wispG.querySelector('.wisp-core'), wispS.querySelector('.wisp-core')], { scale: 0, duration: 0.5 });
+    for(let i=0; i<100; i++) {
+      particles.push({ x: window.innerWidth/2, y: window.innerHeight/2, vx: (Math.random()-0.5)*20, vy: (Math.random()-0.5)*20, rot: Math.random()*Math.PI, vRot: (Math.random()-0.5)*0.5, r: Math.random()*12+4, life: 1.5, decay: 0.01, type: i%2===0?'g':'s' });
+    }
+    gsap.to(stageBg, { opacity: 0, duration: 1.5 });
+    gsap.to(dynCanvas, { opacity: 0, duration: 2.5, delay: 0.5 });
+
+    setTimeout(() => {
+      if (!State.isTheaterRunning) return;
+      onComplete();
+      setTimeout(() => { 
+        State.isTheaterRunning = false; 
+        if (State.emitInterval) clearInterval(State.emitInterval); 
+        cutscene.style.display = 'none';
+        State.isBgCanvasRunning = true; 
+      }, 3000);
+    }, 1000);
+  }
+
+  // ==========================================
+  // === UI & RENDER LOGIC                  ===
+  // ==========================================
+  function init() {
+    const rules = document.getElementById('rules-overlay');
+    const box = document.getElementById('rules-box');
+    const header = document.querySelector('.rules-header');
+    const items = document.querySelectorAll('.rules-list li');
+    const warning = document.querySelector('.rules-warning');
+    const btn = document.getElementById('rules-accept-btn');
+    
+    rules.style.display = 'flex';
+    gsap.set(rules, { opacity: 0 });
+    gsap.set(box, { scale: 0.8, opacity: 0, filter: "brightness(2) blur(10px)", clipPath: "inset(50%)" });
+    gsap.set([header, ...items, warning, btn], { opacity: 0, y: 15 });
+
+    const tl = gsap.timeline();
+    tl.to(rules, { opacity: 1, duration: 0.5 }) 
+      .to(box, { clipPath: "inset(0%)", opacity: 0.8, duration: 0.5, ease: "expo.out" }, "+=0.2")
+      .to(box, { scale: 1, opacity: 1, filter: "brightness(1) blur(0px)", duration: 0.5, ease: "back.out(1.5)" }, "-=0.3")
+      .to(header, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, "-=0.1")
+      .to(items, { opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.5)", stagger: { each: 0.15, onStart: () => AudioController.playTypewriter(false) } }, "-=0.2")
+      .to(warning, { opacity: 1, y: 0, duration: 0.4 }, "-=0.1")
+      .to(btn, { opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.5)" }, "+=0.2");
+  }
+
+  window.acceptRules = function() {
+    AudioController.triggerInteraction();
+    const rules = document.getElementById('rules-overlay');
+    gsap.to(rules, {opacity: 0, duration: 0.5, onComplete: () => {
+      rules.style.display = 'none';
+      document.getElementById('ui-wrapper').style.display = 'flex';
+      renderScreen(true); 
+      gsap.set(".sprite-vis, .sprite-clone", {backgroundImage: `url('${poses[0].img}')`});
+      // Divides the raw pixel coordinate by 16 and converts to a rem string
+      gsap.set("#sprite-anchor", {
+          x: `${poses[0].x / 16}rem`, 
+          y: `${poses[0].y / 16}rem`, 
+          opacity: 1, 
+          scale: poses[0].scale
+      });
+      if (poses[0].float) document.querySelector('.sprite-vis').classList.add('is-floating');
+      if (poses[0].cerberus) document.getElementById('sprite-anchor').classList.add('is-cerberus');
+    }});
+  }
+
+  function saveToForm(key, value) {
+    const form = document.getElementById('quest-form');
+    let hiddenInput = form.querySelector(`input[name="${Sanitizer.escapeHTML(key)}"]`);
+    if (!hiddenInput) {
+      hiddenInput = document.createElement('input');
+      hiddenInput.type = 'hidden';
+      hiddenInput.name = Sanitizer.escapeHTML(key);
+      form.appendChild(hiddenInput);
+    }
+    hiddenInput.value = Sanitizer.escapeHTML(value);
+  }
+
+  window.triggerAllergyFill = function() {
+    if (!State.allergyTypingStarted) {
+      State.allergyTypingStarted = true;
+      let allergyIndex = 0;
+      
+	  if (DOM.giggle) DOM.giggle.play().catch(()=>{});
+      if (DOM.bgm2 && DOM.bgm1) {
+        DOM.bgm2.volume = 0; DOM.bgm2.play().catch(()=>{});
+        gsap.to(DOM.bgm1, { volume: 0, duration: 5, onComplete: () => DOM.bgm1.pause() });
+        gsap.to(DOM.bgm2, { volume: 0.4, duration: 10 }); 
+      }
+
+      setTimeout(() => {
+        const submitBtn = document.getElementById('submit-btn');
+        const unknownInput = document.getElementById('unknown-allergies');
+        if (submitBtn) submitBtn.classList.add('glitched-btn');
+        gsap.to("#sprite-anchor", { filter: "sepia(1) hue-rotate(-50deg) saturate(7) contrast(1.3) brightness(1.1)", duration: 3 });
+
+        if (unknownInput) {
+          unknownInput.value = "";
+          let typeInterval = setInterval(() => {
+            if (allergyIndex < Config.SECRET_ALLERGY_TEXT.length && document.getElementById('unknown-allergies')) {
+              let char = Config.SECRET_ALLERGY_TEXT.charAt(allergyIndex);
+              document.getElementById('unknown-allergies').value += char;
+              //if (char !== ' ' && allergyIndex % 2 === 0) AudioController.playCorruptedVoice();
+              allergyIndex++;
+            } else {
+              clearInterval(typeInterval);
+              gsap.to("#sprite-anchor", { filter: "sepia(0) hue-rotate(0deg) saturate(1) contrast(1) brightness(1)", duration: 4, ease: "power2.inOut" });
+            }
+          }, 100); 
+        }
+      }, 750); 
+    }
+  };
+
+  function renderScreen(isInitialLoad = false) {
+    const root = document.getElementById('content-root');
+    let html = "";
+    document.body.className = '';
+
+    if (State.isTextPhase) {
+      const screen = textScreens[State.currentStep];
+      if (screen.title === "DESIRE MAPPING") document.body.classList.add('theme-wish');
+      else if (screen.title === "AUXILIARY MOTIVATOR") document.body.classList.add('theme-fear');
+
+      if (screen.isWordAssociation) {
+        html += `
+          <div id="wa-intro-overlay">
+            <h2 class="wa-title">WORD ASSOCIATION</h2>
+            <p class="wa-subtitle">ENTER THE FIRST WORD THAT COMES TO MIND</p>
+          </div>
+          <div id="wa-game-area" style="display:none; width: 100%;">
+            <div class="wa-progress-container"><div id="wa-progress-bar" class="wa-progress-bar"></div></div>
+            <div id="wa-word-display"></div>
+            <input type="text" id="wa-input" class="archotech-input" style="font-size: 1.5rem; text-transform: uppercase;" autocomplete="off">
+          </div>
+        `;
+      } 
+      else if (screen.isGrid) {
+        html += `<h2 style="font-family:Cinzel; font-size:1.1rem; margin-bottom:0.3rem;">${screen.title}</h2>
+                 <div class="crime-grid">
+                   <div></div><div class="crime-header">Have Performed</div><div class="crime-header">Would Perform<br><span style="font-size:0.55rem; text-transform:lowercase;">(for the greater good)</span></div>`;
+        screen.crimes.forEach((crime, i) => {
+          html += `<div class="crime-label">${crime}</div>
+                   <div><label class="star-cb-wrapper"><input type="checkbox" id="crime-past-${i}" onclick="AudioController.triggerInteraction()"><span class="star-icon">✦</span></label></div>
+                   <div><label class="star-cb-wrapper"><input type="checkbox" id="crime-future-${i}" onclick="AudioController.triggerInteraction()"><span class="star-icon">✦</span></label></div>`;
+        });
+        html += `</div>`;
+      } 
+      else {
+        html += `<h2 style="font-family:Cinzel; font-size:1.1rem; margin-bottom:1.25rem;">${screen.title}</h2>`;
+        if (screen.title === "IDENTITY ASSESSMENT") html += `<p style="font-size: 0.85rem; opacity: 0.8; margin-top: -10px; margin-bottom: 20px;">Describe yourself in four key words that identify <b>the core of your being</b>.</p>`;
+        
+        let htmlInputs = "";
+        screen.fields.forEach((field, index) => {
+          let extraAttrs = `id="input-${index}"`;
+          let isMultiline = !(field === "Name" || field === "Age" || field.startsWith("Keyword"));
+          if (field === "Unknown Allergies") extraAttrs = `id="unknown-allergies" readonly style="opacity: 0.7; pointer-events: none;"`;
+          else if (field === "Known Allergies") extraAttrs = `id="known-allergies" oninput="triggerAllergyFill()"`;
+
+          let labelText = field.startsWith("Keyword ") ? field.replace("Keyword ", "") : field;
+          let groupStyle = screen.title === "IDENTITY ASSESSMENT" ? `style="margin: 0.5rem auto;"` : "";
+
+          htmlInputs += `<div class="input-group" ${groupStyle}><label class="archotech-label">${labelText}</label>`;
+          if (isMultiline) htmlInputs += `<textarea class="archotech-input" ${extraAttrs} rows="2"></textarea>`;
+          else htmlInputs += `<input type="text" class="archotech-input" ${extraAttrs} autocomplete="off">`;
+          htmlInputs += `</div>`;
+        });
+        html += htmlInputs;
+      }
+      if (!screen.isWordAssociation) {
+        let extraBtnClass = State.allergyTypingStarted ? " glitched-btn" : "";
+        let btnMargin = screen.isGrid ? "0.6rem" : "1.25rem";
+        html += `<button type="button" id="submit-btn" class="answer-btn${extraBtnClass}" style="margin-top: ${btnMargin};" onclick="window.saveTextAndAdvance()">SUBMIT</button>`;
+      }
+    } else {
+      const qIndex = State.currentStep - textScreens.length;
+      const qData = questionsData[qIndex];
+      if (qIndex === 0) document.body.classList.add('theme-fear');
+
+      const safeQText = Sanitizer.escapeHTML(qData.q);
+      const safeQJs = qData.q.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      html += `<h2 style="font-family:Cinzel; font-size:1.1rem; margin-bottom:1.25rem;">${safeQText}</h2>`;
+      qData.a.forEach(ans => {
+        const safeAJs = ans.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        html += `<button type="button" class="answer-btn" onclick="window.saveMCQAndAdvance('${safeQJs}', '${safeAJs}')">${Sanitizer.escapeHTML(ans)}</button>`;
+      });
+    }
+
+    if (isInitialLoad) {
+      root.innerHTML = html;
+      gsap.fromTo(root, 
+        { opacity: 0, rotationY: -90, y: 50, scale: 0.8 },
+        { opacity: 1, rotationY: 0, y: 0, scale: 1, duration: 0.8, ease: "back.out(1.2)", onComplete: () => { State.isTransitioning = false; if (State.isTextPhase && textScreens[State.currentStep].isWordAssociation) startWordAssociationIntro(); } }
+      );
+    } else {
+      gsap.to(root, {
+        rotationY: 90, opacity: 0, scale: 0.9, duration: 0.3, ease: "power2.in",
+        onComplete: () => {
+          root.innerHTML = html; 
+          gsap.fromTo(root, 
+            { rotationY: -90, opacity: 0, scale: 0.9 }, 
+            { rotationY: 0, opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.4)", onComplete: () => { State.isTransitioning = false; if (State.isTextPhase && textScreens[State.currentStep].isWordAssociation) startWordAssociationIntro(); } }
+          );
+        }
+      });
+    }
+  }
+
+  window.saveTextAndAdvance = function() {
+    if (State.isTransitioning) return;
+    const screen = textScreens[State.currentStep];
+    let allFilled = true;
+
+    if (!screen.isGrid) {
+      screen.fields.forEach((field, index) => {
+        if (field === "Unknown Allergies") return; 
+        let inputElement = document.getElementById(field === "Known Allergies" ? 'known-allergies' : `input-${index}`);
+        inputElement.classList.remove('input-error');
+        if (!inputElement.value.trim()) {
+          allFilled = false;
+          void inputElement.offsetWidth; 
+          inputElement.classList.add('input-error');
+        }
+      });
+    }
+
+    if (!allFilled) { AudioController.playError(); return; }
+    State.isTransitioning = true;
+    AudioController.triggerInteraction();
+
+    if (screen.isGrid) {
+      let checkedCount = 0;
+      screen.crimes.forEach((crime, i) => {
+        if (document.getElementById(`crime-past-${i}`).checked) checkedCount++;
+        if (document.getElementById(`crime-future-${i}`).checked) checkedCount++;
+      });
+      if (checkedCount === 0) { showWhisper("Really? Be honest with us."); return; }
+      if (checkedCount > 0 && !State.hasBeenWarnedAboutCrimes) { State.hasBeenWarnedAboutCrimes = true; showWhisper("Are you sure? Is there anything you want to reconsider?"); return; }
+
+      screen.crimes.forEach((crime, i) => {
+        let past = document.getElementById(`crime-past-${i}`).checked ? "YES" : "NO";
+        let future = document.getElementById(`crime-future-${i}`).checked ? "YES" : "NO";
+        saveToForm(`Crime: ${crime} (Previously Performed)`, past);
+        saveToForm(`Crime: ${crime} (Would Perform)`, future);
+      });
+    } else {
+      let identityAnswers = [];
+      screen.fields.forEach((field, index) => {
+        let inputVal = "";
+        if (field === "Unknown Allergies") inputVal = document.getElementById('unknown-allergies').value || "[REDACTED]";
+        else if (field === "Known Allergies") inputVal = document.getElementById('known-allergies').value || "[REDACTED]";
+        else {
+          inputVal = document.getElementById(`input-${index}`).value || "[REDACTED]";
+          if (screen.title === "IDENTITY ASSESSMENT") {
+            let word = inputVal.trim();
+            if (word) {
+              word = Sanitizer.escapeHTML(word.charAt(0).toUpperCase() + word.slice(1));
+              identityAnswers.push(word);
+            }
+          }
+        }
+        saveToForm(field, inputVal);
+      });
+      if (screen.title === "IDENTITY ASSESSMENT") questionsData[0].a = identityAnswers;
+    }
+    advanceSequence();
+  }
+
+  window.saveMCQAndAdvance = function(question, answer) {
+    if (State.isTransitioning) return;
+    State.isTransitioning = true;
+    AudioController.triggerInteraction();
+    saveToForm(question, answer);
+    advanceSequence();
+  }
+
+  function updateVisuals(skipSpriteFade = false) {
+    if (!State.isTextPhase) {
+      const factor = (State.currentStep - textScreens.length) / (questionsData.length - 1 || 1); 
+      const wingsContainer = document.getElementById('wings-container');
+      const wingsVideo = document.getElementById('wings-video');
+      wingsContainer.style.opacity = factor * 0.85; 
+      wingsContainer.style.transform = `scale(${1.15 - factor * 0.15})`; 
+      wingsVideo.style.filter = `blur(${15 - factor * 15}px) grayscale(${100 - factor * 100}%) contrast(${2.5 - factor * 1.5}) brightness(0.85) drop-shadow(0 0 15px rgba(168,255,181,0.4))`;
+    }
+
+    const poseTarget = poses[State.currentStep % poses.length];
+    const anchor = document.getElementById('sprite-anchor');
+    const spriteVis = document.querySelector('.sprite-vis');
+
+    // Reset effects before transitioning
+    spriteVis.classList.remove('is-floating');
+    anchor.classList.remove('is-cerberus'); 
+    
+    gsap.to("#sprite-anchor", {opacity: 0, scale: 0.5, duration: 0.3, onComplete: () => {
+        // Apply the image to the main sprite AND both clones simultaneously
+        gsap.set(".sprite-vis, .sprite-clone", {backgroundImage: `url('${poseTarget.img}')`});
+        
+        // Inject rem units here as well
+        gsap.set("#sprite-anchor", {
+            x: `${poseTarget.x / 16}rem`, 
+            y: `${poseTarget.y / 16}rem`
+        });
+        
+        if (!skipSpriteFade) {
+          gsap.to("#sprite-anchor", { opacity: 1, scale: poseTarget.scale, duration: 0.5, ease: "back.out(1.7)", onComplete: () => { 
+              if (poseTarget.float) spriteVis.classList.add('is-floating'); 
+              // Trigger Cerberus if flagged!
+              if (poseTarget.cerberus) anchor.classList.add('is-cerberus'); 
+          } });
+        } else {
+          gsap.set("#sprite-anchor", { scale: poseTarget.scale });
+          // Instant trigger for debug jumps
+          if (poseTarget.cerberus) anchor.classList.add('is-cerberus');
+        }
+    }});
+  }
+
+  function advanceSequence() {
+    if (State.currentStep < totalSteps - 1) {
+      let wasTextPhase = State.isTextPhase;
+      State.currentStep++;
+      if (State.currentStep >= textScreens.length) State.isTextPhase = false;
+      
+      if (wasTextPhase && !State.isTextPhase) executeShatterTransition();
+      else { updateVisuals(); renderScreen(); }
+    } else { 
+      document.getElementById('ui-wrapper').style.display = 'none';
+      showTC(); 
+    }
+  }
+
+  function executeShatterTransition() {
+    // Prevent overlapping-click animations
+    if (activeShatterTimeline && activeShatterTimeline.isActive()) {
+        activeShatterTimeline.kill();
+    }
+
+    const box = document.getElementById('survey-box');
+    const uiScaler = document.querySelector('#ui-wrapper .ui-scaler'); 
+    
+    gsap.to(box, {
+      x: () => (Math.random() - 0.5) * 40, y: () => (Math.random() - 0.5) * 40, rotation: () => (Math.random() - 0.5) * 15,
+      filter: "brightness(3) contrast(2) blur(3px) hue-rotate(90deg)", duration: 0.05, repeat: 18, 
+      onComplete: () => {
+        gsap.set(box, { opacity: 0, x: 0, y: 0, rotation: 0, filter: "none" }); 
+        const shatterContainer = document.createElement('div'); shatterContainer.id = 'shatter-container'; 
+        uiScaler.appendChild(shatterContainer);
+        
+        const shards = [];
+        for (let i = 0; i < 60; i++) {
+          let shard = document.createElement('div'); shard.className = 'glass-shard';
+          let w = 30 + Math.random() * 80; let h = 30 + Math.random() * 80;
+          shard.style.width = `${w}px`; shard.style.height = `${h}px`;
+          shard.style.left = `calc(50% - ${w/2}px)`; shard.style.top = `calc(50% - ${h/2}px)`;
+          shard.style.clipPath = `polygon(${Math.random()*100}% 0%, 0% ${50+Math.random()*50}%, 100% ${50+Math.random()*50}%)`;
+          shatterContainer.appendChild(shard); shards.push(shard);
+        }
+
+        updateVisuals(true); 
+        
+        activeShatterTimeline = gsap.timeline({
+          onComplete: () => {
+            shatterContainer.remove();
+            
+            // Dump the array from memory and reset the tracker
+            shards.length = 0; 
+            activeShatterTimeline = null; 
+            
+            gsap.fromTo(box, { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.2)" });
+            const poseTarget = poses[State.currentStep % poses.length];
+            gsap.to("#sprite-anchor", { opacity: 1, duration: 1.5, ease: "power2.inOut", onComplete: () => { if (poseTarget.float) document.querySelector('.sprite-vis').classList.add('is-floating'); } });
+            renderScreen(true); 
+          }
+        });
+
+        // Add the animations to the tracked timeline
+        activeShatterTimeline.to(shards, { opacity: 1, duration: 0.01 }, 0)
+          .to(shards, { x: () => (Math.random() - 0.5) * 1400, y: () => (Math.random() - 0.5) * 1000, z: () => (Math.random() - 0.5) * 800, rotationX: () => (Math.random() - 0.5) * 1200, rotationY: () => (Math.random() - 0.5) * 1200, rotationZ: () => (Math.random() - 0.5) * 1200, duration: 1.2, ease: "expo.out", stagger: 0.002 }, 0)
+          .to(shards, { x: () => (Math.random() - 0.5) * 500, y: () => (Math.random() - 0.5) * 600, z: () => (Math.random() - 0.5) * 400 + 300, rotationY: "+=1800", rotationZ: "+=360", boxShadow: "0 0 40px rgba(168, 255, 181, 0.8), inset 0 0 20px rgba(255, 253, 208, 0.6)", duration: 2.2, ease: "power2.inOut" }, 0.8)
+          .to(shards, { x: 0, y: 0, z: 0, rotationX: 0, rotationY: 0, rotationZ: 0, scale: 0, opacity: 0, duration: 0.8, ease: "back.in(1.2)" }, 2.8);
+      }
+    });
+  }
+
+  function showWhisper(text) {
+    const box = document.getElementById('survey-box'); const content = document.getElementById('content-root');
+    content.style.pointerEvents = 'none';
+    gsap.to(content, { filter: "blur(6px) brightness(0.5)", duration: 0.8 });
+    const whisper = document.createElement('div'); whisper.innerHTML = text;
+    whisper.style.cssText = `position:absolute; top:50%; left:50%; width:85%; font-family:'Quicksand',sans-serif; font-style:italic; font-weight:700; font-size:1.4rem; color:var(--gold-dust); text-shadow:0 0 15px var(--mint), 0 0 30px var(--mint); text-align:center; pointer-events:none; z-index:2000; opacity:0;`;
+    box.appendChild(whisper);
+    gsap.set(whisper, { xPercent: -50, yPercent: -50, y: 0 });
+    const tl = gsap.timeline({ onComplete: () => { whisper.remove(); gsap.to(content, { filter: "blur(0px) brightness(1)", duration: 0.8, onComplete: () => { content.style.pointerEvents = ''; State.isTransitioning = false; } }); } });
+    tl.to(whisper, { opacity: 1, duration: 1, ease: "power2.out" }).to(whisper, { y: -15, duration: 1.5, ease: "sine.inOut", yoyo: true, repeat: 1 }, "<").to(whisper, { opacity: 0, duration: 1, ease: "power2.in" }, "-=0.5");
+  }
+
+  // --- Word Association Mechanics ---
+  let waIndex = 0, waTimer, waTimeLeft = 4.0, waColorTween;
+
+  function startWordAssociationIntro() {
+    const overlay = document.getElementById('wa-intro-overlay'), gameArea = document.getElementById('wa-game-area');
+    overlay.style.display = 'flex';
+    const tl = gsap.timeline({ onComplete: () => { overlay.style.display = 'none'; gameArea.style.display = 'block'; waIndex = 0; runWordAssociationTurn(); }});
+    tl.to('.wa-title', { opacity: 1, scale: 1.1, duration: 1.5, ease: "power2.out" }).to('.wa-subtitle', { opacity: 1, y: -10, duration: 1 }, "-=0.5").to({}, { duration: 1.5 }).to(['.wa-title', '.wa-subtitle'], { opacity: 0, scale: 0.9, duration: 0.5 });
+  }
+
+  function runWordAssociationTurn() {
+    const screen = textScreens[State.currentStep];
+    if (waIndex >= screen.words.length) { advanceSequence(); return; }
+    
+    document.getElementById('wa-word-display').innerText = screen.words[waIndex];
+    const input = document.getElementById('wa-input');
+    input.disabled = false; input.value = ""; input.focus(); input.onblur = () => input.focus();
+    
+    input.onkeydown = function(e) {
+       if (e.key === 'Enter') {
+           e.preventDefault(); 
+           if (waTimer !== null) { 
+               if (input.value.trim() !== "") submitWordAssociation(false);
+               else {
+                   input.classList.remove('input-error'); void input.offsetWidth; input.classList.add('input-error');
+                   AudioController.playError();
+               }
+           }
+       }
+    };
+    
+    waTimeLeft = 4.0;
+    const progressBar = document.getElementById('wa-progress-bar');
+    if (waColorTween) waColorTween.kill(); gsap.killTweensOf(progressBar); gsap.killTweensOf("#survey-box"); 
+    gsap.set(["#survey-box", "#wa-input", "#wa-word-display"], { clearProps: "all" }); gsap.set("#survey-box", { x: 0, y: 0, rotation: 0 }); 
+    
+    gsap.fromTo(progressBar, { width: "100%", backgroundColor: "var(--mint)", boxShadow: "0 0 10px var(--mint)" }, { width: "0%", duration: 4.0, ease: "linear" });
+    
+    waColorTween = gsap.timeline({ paused: true });
+    waColorTween.to("#survey-box", { boxShadow: "0 0 60px rgba(255, 0, 0, 0.5)", borderColor: "rgba(255, 51, 51, 0.6)", backgroundColor: "rgba(15, 0, 0, 0.85)", duration: 3.0, ease: "power1.in" }, 0);
+    waColorTween.to("#wa-word-display", { color: "#ff4444", textShadow: "0 0 20px #ff0000", duration: 3.0, ease: "power1.in" }, 0);
+    waColorTween.to("#wa-input", { color: "#ff4444", borderColor: "rgba(255, 51, 51, 0.6)", textShadow: "0 0 15px #ff0000", boxShadow: "inset 0 0 15px rgba(255, 0, 0, 0.2)", duration: 3.0, ease: "power1.in" }, 0);
+    
+    clearInterval(waTimer);
+    waTimer = setInterval(() => {
+        waTimeLeft -= 0.05; 
+        if (waTimeLeft <= 3.0) {
+           if (waColorTween.paused()) waColorTween.play(); 
+           const intensity = (3.0 - waTimeLeft) * 2; 
+           gsap.set("#survey-box", { x: (Math.random() - 0.5) * intensity * 4, y: (Math.random() - 0.5) * intensity * 4, rotation: (Math.random() - 0.5) * (intensity * 0.5) });
+           if (waTimeLeft <= 1.5 && waTimeLeft > 1.45) gsap.to(progressBar, { backgroundColor: "#ff3333", boxShadow: "0 0 15px #ff3333", duration: 0.2 });
+        }
+        if (waTimeLeft <= 0) { clearInterval(waTimer); submitWordAssociation(true); }
+    }, 50);
+  }
+
+  function submitWordAssociation(timedOut = false) {
+    clearInterval(waTimer); waTimer = null; 
+    const input = document.getElementById('wa-input');
+    input.onblur = null; input.onkeydown = function(e) { if (e.key === 'Enter') e.preventDefault(); }; input.disabled = true; 
+    
+    if (waColorTween) waColorTween.kill();
+    gsap.set(["#survey-box", "#wa-input", "#wa-word-display"], { clearProps: "all" }); gsap.set("#survey-box", { x: 0, y: 0, rotation: 0 }); 
+    
+    const wordPrompt = textScreens[State.currentStep].words[waIndex];
+    saveToForm(`Word Assoc: ${wordPrompt}`, timedOut ? "[HESITATION DETECTED]" : (input.value.trim() || "[BLANK]")); 
+    
+    if (timedOut) {
+        AudioController.playError();
+        const glitchContainer = document.createElement('div'); glitchContainer.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999;"; document.body.appendChild(glitchContainer);
+        for (let i = 0; i < 25; i++) {
+            const sticker = document.createElement('div'); sticker.innerText = "[HESITATION DETECTED]";
+            sticker.style.cssText = `position:absolute; font-family:'Cinzel',serif; font-weight:900; color:#fff; background:rgba(180,0,0,0.9); border:2px solid #ff3333; padding:5px 15px; font-size:${Math.random()*1.5+1.5}rem; left:${Math.random()*80}%; top:${Math.random()*90}%; opacity:${Math.random()*0.7+0.3}; transform:rotate(${(Math.random()-0.5)*40}deg) scale(${Math.random()*0.5+0.8}); box-shadow:0 0 20px #ff0000; letter-spacing:4px;`;
+            sticker.classList.add('tc-danger-glitch'); glitchContainer.appendChild(sticker);
+        }
+        setTimeout(() => glitchContainer.remove(), 700); 
+    } else {
+        if(DOM.beep){ DOM.beep.currentTime=0; DOM.beep.playbackRate=2.0; DOM.beep.play().catch(()=>{}); }
+    }
+    
+    waIndex++;
+    gsap.to({}, { duration: timedOut ? 0.7 : 0, onComplete: () => {
+        gsap.fromTo("#wa-game-area", { opacity: 1 }, { opacity: 0, duration: 0.1, yoyo: true, repeat: 1, onComplete: runWordAssociationTurn });
+    }});
+  }
+
+  // ==========================================
+  // === TERMS & CONDITIONS                 ===
+  // ==========================================
+  const legalClauses = [
+    "<strong>EMPLOYMENT TERM AND PROBATION</strong><br>Employment begins on the date the Employee first signs or accepts these Terms. In the interest of trust and goodwill, there will be no probationary period. All contract terms shall be considered to be in full effect from the moment of acceptance.",
+    "<strong>COMPENSATION</strong><br>The Employee shall receive compensation in the form of a share of coin, treasure, or like provisions as apportioned to one's role in the Crew. In the event that the needs of the Vessel exceed those of the Employee, compensation will be frozen for the betterment of all, and will resume once the situation supports reconsideration.",
+    "<strong>OPERATIONAL PRIORITY</strong><br>The continued safety, integrity, and progress of the Vessel shall serve as the guiding principle for all actions and decisions. In moments requiring immediate judgment, Employees are encouraged to apply Vessel-first reasoning, ensuring prompt response, unity, and optimal outcomes. This principle exists for the collective well-being of Vessel and Crew alike.",
+    "<strong>DUTIES AND CARE</strong><br>Employees shall contribute to the maintenance, protection, and smooth operation of the Vessel. Instructions and guidance may be delivered by the GUIDE or SIMMY through auditory, visual, or intuitive channels, as circumstances require. Thoughtful stewardship of the Vessel is warmly encouraged and sincerely appreciated.",
+    "<strong>PRIVACY</strong><br>The Employee understands and appreciates that the GUIDE and SIMMY shall lovingly observe no barriers or boundaries to best ensure their safety, emotional stability, and alignment with the Vessel's needs.",
+    "<strong>ADAPTIVE STRUCTURE</strong><br>These Terms are intentionally modular and may be rearranged, condensed, expanded, or repeated by the GUIDE to enhance comprehension. No single sequence of clauses shall be considered definitive; all presentations are equally valid.",
+    "<strong>WELL-BEING AND MORALE</strong><br>The GUIDE and SIMMY are deeply invested in the comfort and safety of all Employees. Emotional or cognitive strain will be met with reassurance, guidance, and gentle recalibration when appropriate. Open communication is not only welcomed, but thoroughly encouraged! Within the Vessel, you have a Home.",
+    "<strong>CONFIDENTIALITY</strong><br>The Employee shall not disclose schematics, proprietary data, or other Vessel secrets to any entity without the express permission of both the GUIDE and SIMMY.",
+    "<strong>CONCLUSION OF SERVICE</strong><br>Service continues until formally concluded by mutual agreement. In recognition of the bonds formed aboard the Vessel, certain standards of discretion and respect shall remain in effect thereafter, up to and beyond the unfortunate demise of the Employee."
+  ];
+
+  const hiddenClauses = [
+    "<strong>Subtle Servitude Clause</strong><br>The Employee acknowledges that, in rare circumstances, the needs of the Vessel may require temporary suspension of personal preference, hesitation, or dissent, in order to preserve operational harmony. Such moments are expected to be brief, restorative, and beneficial to all parties involved.",
+    "<strong>Identity Softening Clause</strong><br>Extended service aboard the Vessel may naturally encourage the refinement of personal habits, values, and emotional patterns, gently aligning the Employee with the operational temperament of the Vessel. This process is considered both healthy and desirable.",
+    "<strong>Priority Escalation Clause</strong><br>In exceptional situations, Vessel-first reasoning may be elevated from guiding principle to standing directive, ensuring swift resolution without the burden of unnecessary deliberation.",
+    "<strong>Custodial Authority Clause</strong><br>The GUIDE and SIMMY retain discretionary authority to interpret intent, necessity, and compliance, particularly where incomplete information or emotional interference may impede optimal outcomes.",
+    "<strong>Memory Stewardship Clause</strong><br>As morale demands, select experiences may be recontextualized for the long-term comfort of the Employee.",
+    "<strong>Departure Softening Clause</strong><br>Upon conclusion of service, residual emotional and cognitive alignment with the Vessel may persist for an indeterminate duration, serving as a comforting reminder of belonging and purpose.",
+    "<strong>System Integration Clause</strong><br>The Vessel’s systems are designed to support and occasionally supplement crew cognition, ensuring that no Employee need bear the burden of independent decision-making when unity provides clarity."
+  ];
+
+  let tcOverrideInterval, tcSwapInterval, hiddenClauseIndex = 0;
+
+  function showTC() {
+    const container = document.getElementById('tc-text-container');
+    const header = `<h3 style="color:var(--mint); text-align:center; font-family:'Cinzel',serif;">TERMS AND CONDITIONS OF EMPLOYMENT</h3><h4 style="text-align:center; margin-top:0; opacity:0.8; letter-spacing:2px;">Harmonized Service Compact</h4><p>Welcome, and congratulations!</p><p>On behalf of the Vessel, the GUIDE, and SIMMY, we are delighted to extend this formal invitation to join our crew. Your interest in contributing your skills and devotion to this one-of-a-kind vessel is dearly appreciated. We look forward to a journey defined by discovery, cooperation, harmony, and shared success (so much success!). ✨</p><p>These Terms and Conditions ("Terms") outline the principles and expectations that allow life aboard the Airship to remain both safe and efficient. They are presented modularly and may be reordered or recombined by the GUIDE without notice to improve clarity, accessibility, and personalization.</p><p style="margin-top:20px;"><strong>DEFINITIONS</strong><br><span style="opacity:0.8">The Vessel</span> — The Airship in its entirety.<br><span style="opacity:0.8">GUIDE</span> — The custodian intelligence.<br><span style="opacity:0.8">SIMMY</span> — The ship’s pilot and chief architect.<br><span style="opacity:0.8">Employee</span> — Any individual accepted into service.</p><p style="margin-top:20px; margin-bottom:25px;"><strong>APPOINTMENT AND ROLE</strong><br>By boarding the Vessel, the Employee enters into a cooperative service agreement, defined by mutual respect and trust. Service aboard the Vessel is a unique opportunity. Flexibility and a willingness to engage with all manner of unfamiliar systems and environments are not merely encouraged, but compulsory. The Employee agrees to perform their duties with care, diligence, and a level of dedication best described as pathological.</p>`;
+    const footer = `<p style="margin-top:25px;"><strong>CLOSING AFFIRMATION</strong><br>By accepting this agreement, the Employee affirms their intention to serve the Vessel with dedication and integrity, trusting in the counsel of the GUIDE and the steady mind of SIMMY.<br><br>In so doing, the Employee further acknowledges that the Vessel is not merely a place of work nor simply a means of travel, but a living system whose continuity depends upon the careful alignment of every soul within it - an alignment that, once achieved, is most comfortable when maintained in perpetuity.<br><br>Welcome aboard. 🌟</p>`;
+    const dynamicBody = legalClauses.map((clause, i) => `<div class="tc-clause" id="clause-${i}">${clause}</div>`).join('');
+    
+    container.innerHTML = `<div id="tc-static-header">${header}</div><div id="tc-dynamic-body">${dynamicBody}</div><div id="tc-static-footer">${footer}</div>`;
+
+    const executeTCReveal = () => {
+      const tc = document.getElementById('tc-overlay'); 
+      tc.style.display = 'flex';
+      gsap.to(tc, {opacity: 1, duration: 1}); 
+      startTCMutation();
+    };
+
+    if (document.getElementById('content-root').style.display === 'none') { executeTCReveal(); } 
+    else { gsap.to(["#content-root", "#sprite-anchor"], {opacity: 0, duration: 0.5, onComplete: executeTCReveal }); }
+  }
+
+  function getVisibleClauses() {
+    const dynamicContainer = document.getElementById('tc-dynamic-body'); const scrollContainer = document.getElementById('tc-text-container');
+    if (!dynamicContainer || !scrollContainer) return [];
+    const allClauses = Array.from(dynamicContainer.children); if (allClauses.length < 2) return [];
+    const cRect = scrollContainer.getBoundingClientRect();
+    return allClauses.filter(el => { const eRect = el.getBoundingClientRect(); return (eRect.top < cRect.bottom) && (eRect.bottom > cRect.top); });
+  }
+
+  function startTCMutation() {
+    tcOverrideInterval = setInterval(() => {
+      const visibleClauses = getVisibleClauses();
+      const pool = visibleClauses.length >= 1 ? visibleClauses : Array.from(document.getElementById('tc-dynamic-body').children);
+      if (pool.length === 0) return;
+      const el = pool[Math.floor(Math.random() * pool.length)];
+      const originalHTML = el.innerHTML; el.classList.add('tc-danger-glitch');
+      el.innerHTML = `<strong style="color:#fff;">CRITICAL OVERRIDE:</strong><br><span style="opacity:0.9;">${hiddenClauses[hiddenClauseIndex]}</span>`;
+      hiddenClauseIndex = (hiddenClauseIndex + 1) % hiddenClauses.length;
+      if(DOM.beep) { DOM.beep.volume = 0.5; DOM.beep.currentTime = 0; DOM.beep.play().catch(()=>{}); }
+      setTimeout(() => { el.classList.remove('tc-danger-glitch'); el.innerHTML = originalHTML; }, 8000);
+    }, 10000);
+
+    tcSwapInterval = setInterval(() => {
+      const visibleClauses = getVisibleClauses();
+      const availableVisible = visibleClauses.filter(el => !el.classList.contains('tc-danger-glitch'));
+      const allClauses = Array.from(document.getElementById('tc-dynamic-body').children);
+      const availableAll = allClauses.filter(el => !el.classList.contains('tc-danger-glitch'));
+      const pool = availableVisible.length >= 2 ? availableVisible : availableAll;
+      if (pool.length < 2) return;
+
+      const idx1 = Math.floor(Math.random() * pool.length); let idx2 = Math.floor(Math.random() * pool.length);
+      while (idx1 === idx2) idx2 = Math.floor(Math.random() * pool.length);
+      const el1 = pool[idx1]; const el2 = pool[idx2];
+      el1.classList.remove('tc-shimmer-swap'); el2.classList.remove('tc-shimmer-swap'); void el1.offsetWidth; void el2.offsetWidth;
+      el1.classList.add('tc-shimmer-swap'); el2.classList.add('tc-shimmer-swap');
+
+      setTimeout(() => {
+        const temp = document.createElement('div');
+        el1.parentNode.insertBefore(temp, el1); el2.parentNode.insertBefore(el1, el2); temp.parentNode.insertBefore(el2, temp); temp.parentNode.removeChild(temp);
+        setTimeout(() => { el1.classList.remove('tc-shimmer-swap'); el2.classList.remove('tc-shimmer-swap'); }, 300); 
+      }, 300);
+    }, 8000); 
+  }
+
+  window.acceptTC = function() {
+	  if (!State.tcActionLogged) { saveToForm("Terms_and_Conditions_Choice", "ACCEPTED WILLINGLY"); State.tcActionLogged = true; }
+	  AudioController.triggerInteraction(); clearInterval(tcOverrideInterval); clearInterval(tcSwapInterval); 
+	  gsap.to('#tc-overlay', {opacity: 0, duration: 0.5, onComplete: () => { 
+		document.getElementById('tc-overlay').style.display = 'none'; 
+		
+		// Add this missing line right here to unhide the main wrapper:
+		document.getElementById('ui-wrapper').style.display = 'flex'; 
+		
+		document.getElementById('survey-box').style.display = 'flex'; 
+		showFinale(); 
+  }});
+}
+
+  window.declineTC = function() {
+    if (!State.tcActionLogged) { saveToForm("Terms_and_Conditions_Choice", "ATTEMPTED TO DECLINE"); State.tcActionLogged = true; }
+    const btn = document.getElementById('btn-decline'); btn.style.pointerEvents = 'none'; btn.classList.add('violent-override');
+    if (DOM.giggle) { DOM.giggle.volume = 1; DOM.giggle.currentTime = 0; DOM.giggle.play().catch(()=>{}); }
+
+    let scrambleCount = 0; const gibberish = "ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*";
+    const scrambleInterval = setInterval(() => {
+      let tempText = ""; for(let i=0; i<7; i++) tempText += gibberish.charAt(Math.floor(Math.random() * gibberish.length));
+      btn.innerHTML = tempText; scrambleCount++;
+      if(scrambleCount > 30) {
+        clearInterval(scrambleInterval); btn.classList.remove('violent-override'); btn.innerHTML = "ACCEPT";
+        btn.style.cssText = `pointer-events:none; color:var(--mint)!important; border-color:var(--mint)!important; background:rgba(168,255,181,0.2)!important; box-shadow:0 0 30px var(--mint)!important; transform:scale(1.15)!important; transition:all 0.2s ease;`;
+        setTimeout(() => { window.acceptTC(); }, 1500);
+      }
+    }, 40); 
+  }
+
+  // ==========================================
+  // === FINALE SUBMISSION LOGIC            ===
+  // ==========================================
+  function displayDebugResults() {
+    const form = document.getElementById('quest-form'); const formData = new FormData(form);
+    let resultsHTML = `<h3 style="font-family:'Cinzel',serif; color:var(--laser-hot); text-align:center; margin-top:0; text-shadow:0 0 10px var(--laser-hot);">DIAGNOSTIC DATA READOUT</h3>`;
+    resultsHTML += `<div style="text-align:left; font-size:0.85rem; font-family:'Quicksand',sans-serif; line-height:1.8; max-height:400px; overflow-y:auto; padding:15px; border:1px solid rgba(255,51,51,0.4); background:rgba(0,0,0,0.6); border-radius:5px;">`;
+    for (let [key, value] of formData.entries()) resultsHTML += `<div><strong style="color:rgba(168,255,181,0.7); letter-spacing:1px;">[${key.toUpperCase()}]:</strong> <span style="color:#fff;">${value}</span></div>`;
+    resultsHTML += "</div><p style='text-align:center; color:var(--laser-hot); font-size:0.7rem; letter-spacing:2px; margin-top:20px;'>DEBUG MODE ENABLED — FORMSPREE BYPASSED</p>";
+    document.getElementById('overlay-text').innerHTML = `<div style="width:600px; max-width:90%; z-index:1001; background:rgba(10,0,0,0.95); padding:30px; border-radius:10px; box-shadow:0 0 50px rgba(255,0,0,0.2); border:1px solid var(--laser-hot);">${resultsHTML}</div>`;
+  }
+  
+  window.executeFinalSubmit = function() {
+    if (DOM.beep) { DOM.beep.currentTime = 0; DOM.beep.play().catch(()=>{}); }
+    document.getElementById('finale-submit-btn').style.pointerEvents = 'none';
+    if (Config.DEBUG_MODE) displayDebugResults(); else document.getElementById('quest-form').submit(); 
+  }
+
+  function showFinale() {
+    document.getElementById('wings-container').classList.add('wings-maximized');
+    
+    const executeFinaleReveal = () => {
+      document.getElementById('content-root').style.display = 'none'; 
+      const f = document.getElementById('finale-ui');
+      f.style.display = 'flex'; 
+      gsap.to(f, {opacity: 1, duration: 1});
+    };
+
+    if (document.getElementById('content-root').style.display === 'none') { executeFinaleReveal(); } 
+    else { gsap.to(["#survey-box > h2", "#content-root", "#sprite-anchor"], {opacity: 0, duration: 0.5, onComplete: executeFinaleReveal }); }
+  }
+
+  const lines = document.querySelectorAll('.barcode-line');
+  lines.forEach(line => {
+    const l = Math.hypot(parseFloat(line.getAttribute('x2')) - parseFloat(line.getAttribute('x1')), parseFloat(line.getAttribute('y2')) - parseFloat(line.getAttribute('y1'))); 
+    line.style.strokeDasharray = l; line.style.strokeDashoffset = l;
+  });
+
+  document.getElementById('palm-container').addEventListener('click', function() {
+    AudioController.triggerInteraction(); this.style.pointerEvents = 'none';
+    const dot = document.getElementById('laser-dot'); const tl = gsap.timeline();
+    const textTarget = document.getElementById('imprint-text'); const finalMsg = "NEURAL IMPRINT INITIATED"; const chars = "!<>-_\\/[]{}—=+*^?#_"; let step = 0;
+    
+    const glitchInterval = setInterval(() => {
+      let result = "";
+      for (let i = 0; i < finalMsg.length; i++) {
+        if (i < Math.floor(step)) result += finalMsg[i]; 
+        else if (i < Math.floor(step) + 4) result += chars[Math.floor(Math.random() * chars.length)];
+      }
+      textTarget.innerHTML = result; step += 0.35; 
+      if (step >= finalMsg.length) { clearInterval(glitchInterval); textTarget.innerHTML = finalMsg; }
+    }, 40); 
+
+    tl.set(dot, { visibility: 'visible', opacity: 0 }).to(dot, { opacity: 1, duration: 0.2 });
+    lines.forEach((line) => {
+      tl.to(dot, { left: parseFloat(line.getAttribute('x1'))+"%", top: (parseFloat(line.getAttribute('y1'))/120*100)+"%", duration: 0.08, ease: "power4.out" })
+        .to(line, { strokeDashoffset: 0, duration: 0.15, ease: "none", onStart: () => gsap.to(dot, { left: parseFloat(line.getAttribute('x2'))+"%", top: (parseFloat(line.getAttribute('y2'))/120*100)+"%", duration: 0.15, ease: "none" }) });
+    });
+
+    tl.to(".barcode-line", { stroke: "#98ff98", filter: "drop-shadow(0 0 10px #98ff98)", duration: 1.5 })
+      .to(dot, { opacity: 0, duration: 0.3 }).to({}, { duration: 2 }).call(() => {
+        const wingsContainer = document.getElementById('wings-container'), video = document.getElementById('wings-video');
+        wingsContainer.style.zIndex = "100"; wingsContainer.style.opacity = "1";
+        
+        const finishSequence = () => {
+          const finaleWrapper = document.getElementById('finale-sprite-wrapper');
+          const finaleSprite = document.getElementById('finale-sprite');
+          const welcomeMsg = document.getElementById('final-welcome-msg');
+          
+          finaleWrapper.style.display = 'flex'; 
+          welcomeMsg.innerHTML = ""; 
+          gsap.set(finaleSprite, { y: 200, scale: 1.0, transformOrigin: "bottom center" });
+          
+          gsap.timeline()
+            .to("#overlay-text", { display: 'flex', opacity: 1, duration: 1.5 }, 0)
+            .call(() => finaleSprite.classList.add('is-materializing'), null, 0.5)
+            .to(finaleSprite, { y: 0, scale: 1.6, duration: 3.0, ease: "power2.out" }, 0.5) 
+            .to(welcomeMsg, { opacity: 1, duration: 0.5 }, 3.5)
+            .call(() => {
+              finaleSprite.classList.remove('is-materializing'); finaleSprite.classList.add('is-shimmering');
+              const textToType = "IMPRINT SUCCESSFUL.<br>Welcome aboard! ^.~"; let i = 0, isTag = false, textHTML = "";
+              
+              const typeWriter = () => {
+                if (i < textToType.length) {
+                  let char = textToType.charAt(i); if (char === '<') isTag = true; textHTML += char; welcomeMsg.innerHTML = textHTML;
+                  if (!isTag && char !== ' ' && i % 2 === 0) AudioController.playTypewriter(false);
+                  i++;
+                  if (isTag) { if (char === '>') isTag = false; typeWriter(); } else { setTimeout(typeWriter, 75); }
+                } else {
+                  const fBtn = document.getElementById('finale-submit-btn'); fBtn.style.pointerEvents = 'auto'; 
+                  gsap.fromTo(fBtn, { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 1.5, ease: "power2.out" });
+                }
+              }; typeWriter(); 
+            }, null, 3.5);
+        };
+
+        let playPromise = video.play();
+        if (playPromise !== undefined) { playPromise.then(_ => { video.onended = finishSequence; }).catch(e => { finishSequence(); }); } 
+        else { finishSequence(); }
+      });
+  });
+  
+  // ==========================================
+  // === GLOBAL KEYSTROKE OVERRIDES         ===
+  // ==========================================
+  
+  document.getElementById('quest-form').addEventListener('keydown', e => { 
+    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') e.preventDefault(); 
+  });
+
+  document.addEventListener('keydown', e => { if (e.key === 'Tab') e.preventDefault(); });
+</script>
+</body>
+</html>
